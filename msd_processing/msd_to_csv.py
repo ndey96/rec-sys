@@ -48,8 +48,13 @@ categories = [
       'track_id',
       'year',
 ]
-path="./MillionSongSubset/data"
-write_path="song_data.csv"
+path = sys.argv[1]
+if path == None:
+  path = "./MillionSongSubset/data"
+
+write_path = sys.argv[2]
+if write_path == None:
+  write_path = "song_data.csv"
 
 def get_datapoint(file_path):
       h5file = hdf5_getters.open_h5_file_read(file_path)
