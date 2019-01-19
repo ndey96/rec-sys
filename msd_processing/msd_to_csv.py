@@ -1,7 +1,6 @@
 # Adapted from https://github.com/eltonlaw/msdvis/blob/d0f3c4511dc84e07f306ab219348ccd6fc3933df/grab_data.py
 
 import os
-import numpy as np
 import sys
 import pandas as pd
 import sqlite3
