@@ -1,6 +1,7 @@
 MillionSongSubset/
 .idea/
 data/
+msd_processing/MillionSongSubset/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
