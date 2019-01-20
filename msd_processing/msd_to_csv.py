@@ -70,8 +70,10 @@ if __name__ == "__main__":
 
   print(file_paths[0])
   print(len(file_paths))
-  data = list(
-      tqdm(Pool().imap(get_datapoint, file_paths), total=len(file_paths)))
+  print('Extracting data from h5 files now...')
+  data = Pool().map(func=get_datapoint, iterable=file_paths, chunksize=625)
+  print('Data extracted into list. Creating dataframe now...')
   df = pd.DataFrame(data)
+  print('Dataframe created. Writing to csv now...')
   df.to_csv(write_path)
   print(f'Data written to {write_path}')
