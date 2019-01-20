@@ -62,11 +62,14 @@ def get_datapoint(file_path):
       return datapoint
 
 if __name__ == "__main__":
-  h5_files = [x for x in os.walk(path) if len(x[0]) == 30]
+  h5_files = [x for x in os.walk(path)]
   file_paths = []
   for root, dirs, files in h5_files:
     for f in files:
       file_paths.append(os.path.join(root, f))
+
+  print(file_paths[0])
+  print(len(file_paths))
   data = list(
       tqdm(Pool().imap(get_datapoint, file_paths), total=len(file_paths)))
   df = pd.DataFrame(data)
