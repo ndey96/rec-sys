@@ -3,6 +3,7 @@ data/*
 *millionsongdataset_echonest/
 *mismatches.txt
 *train_triplets.txt
+*lastfm-dataset-360K
 .idea/
 
 # Byte-compiled / optimized / DLL files
