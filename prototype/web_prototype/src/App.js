@@ -12,6 +12,7 @@ class App extends Component {
       console.log(hashParams.access_token)
       setToken(hashParams.access_token);
       makePlaylist();
+
     }
     this.callBackendAPI()
       .then(res => this.setState({ data: res.express }))
@@ -31,7 +32,7 @@ class App extends Component {
   render() {
     return ( 
       <div className="App">
-      Get Recd
+      Get Rec'd
       </div>
     );
   }

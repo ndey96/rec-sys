@@ -1,4 +1,5 @@
 //spotifyFunctions.js
+
 import SpotifyWebApi from 'spotify-web-api-js'
 
 const spotifyWebApi = new SpotifyWebApi();
@@ -22,6 +23,10 @@ export function authorize() {
           let text = '';
           const possible =
           'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+      const stateKey = 'spotify-auth-key'
+      var access_token = ''
+
 
           while (text.length <= length) {
            text += possible.charAt(Math.floor(Math.random() * possible.length));
@@ -49,6 +54,7 @@ export function getHashParams() {
       }
     return hashParams;
   }
+
 
 export function setToken(token: String) {
   spotifyWebApi.setAccessToken(token);
