@@ -14,5 +14,4 @@
 .gitignore
 
 # Node.js dependencies:
-/node_modules/
-!/node_modules/spotify-web-api-js
+/node_modules
