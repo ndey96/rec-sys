@@ -6,14 +6,16 @@ const spotifyWebApi = new SpotifyWebApi();
 const stateKey = 'spotify-auth-key';
 const playlistName = 'FYDPPlaylistTest';
 const uriBuilderString = 'spotify:track:';
+const devBrowser = 'https://fydp-getrecd.appspot.com/'
+const prodBrowser = 'https://fydp-getrecd.appspot.com/'
 var topTrackIds = [String];
 var recommendedTrackIds = [String];
-var recommendedTrackUris = [String];
+var recommendedTrackUris = [String]
 
 export function authorize() {
       localStorage.removeItem(stateKey);
       const CLIENT_ID = '3f2b320cfc4f4af5a106fa21e6bc8d0c';
-      const REDIRECT_URI = 'http://localhost:3000/';
+      const REDIRECT_URI = devBrowser;
       const scopes = [
       'user-top-read',
       'playlist-modify-public',
