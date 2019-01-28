@@ -28,7 +28,7 @@ def get_id_pair(file_path):
 
 if __name__ == "__main__":
   base_path = 'millionsongdataset_echonest/'
-  write_path = 'spotify_msd_id_pairs.csv'
+  write_path = 'spotify_msd_id_pairs.h5'
   json_files = [x for x in os.walk(base_path)]
   file_paths = []
   for root, dirs, files in json_files:
@@ -45,6 +45,6 @@ if __name__ == "__main__":
   print(df.shape)
   df = df.dropna()
   print(df.shape)
-  print('Dataframe created. Writing to csv now...')
-  df.to_csv(write_path, index=None)
+  print('Dataframe created. Writing to h5 file now...')
+  df.to_hdf(write_path, key='df', mode='w')
   print(f'Data written to {write_path}')

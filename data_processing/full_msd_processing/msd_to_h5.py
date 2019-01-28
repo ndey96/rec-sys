@@ -48,7 +48,7 @@ categories = [
       'year',
 ]
 path = "./MillionSongSubset/data"
-write_path = "song_data.csv"
+write_path = "song_data.h5"
 if len(sys.argv) > 1:
   path = sys.argv[1]
   write_path = sys.argv[2]
@@ -74,6 +74,6 @@ if __name__ == "__main__":
   data = Pool().map(func=get_datapoint, iterable=file_paths, chunksize=625)
   print('Data extracted into list. Creating dataframe now...')
   df = pd.DataFrame(data)
-  print('Dataframe created. Writing to csv now...')
-  df.to_csv(write_path)
+  print('Dataframe created. Writing to h5 file now...')
+  df.to_hdf(write_path, key='df', mode='w')
   print(f'Data written to {write_path}')
