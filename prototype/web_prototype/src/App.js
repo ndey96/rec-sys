@@ -1,23 +1,17 @@
 import React, { Component } from 'react';
 import './App.css';
-import {authorize} from './spotifyFunctions.js'
-import { setToken } from './tokenActions';
+import {authorize, getHashParams, setToken, makePlaylist} from './spotifyFunctions.js'
 
 class App extends Component {
 
   componentDidMount() {
-    let hashParams = {};
-    let e, r = /([^&;=]+)=?([^&;]*)/g,
-      q = window.location.hash.substring(1);
-    while ( e = r.exec(q)) {
-      hashParams[e[1]] = decodeURIComponent(e[2]);
-    }
-
+   let hashParams = getHashParams();
     if(!hashParams.access_token) {
       authorize();
     } else {
       console.log(hashParams.access_token)
-      //run playlist generation
+      setToken(hashParams.access_token);
+      makePlaylist();
     }
     this.callBackendAPI()
       .then(res => this.setState({ data: res.express }))
@@ -35,9 +29,9 @@ class App extends Component {
   };
 
   render() {
-    return (
+    return ( 
       <div className="App">
-      Get Rec'd
+      Get Recd
       </div>
     );
   }
