@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import './App.css';
-import {authorize, getHashParams, setToken, makePlaylist} from './spotifyFunctions.js'
+import {authorize, getHashParams, setToken, makePlaylist} from './SpotifyFunctions.js'
 
 class App extends Component {
 

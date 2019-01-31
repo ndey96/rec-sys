@@ -1,12 +1,9 @@
 {
   "name": "web_prototype",
   "version": "0.1.0",
-  "private": false,
+  "private": true,
   "homepage": "https://fydp-getrecd.appspot.com",
-  // prod host
-  //"host": "https://fydp-getrecd.appspot.com",
-  // dev host
-  "host": "http://localhost:3000/",
+  "host": "https://fydp-getrecd.appspot.com",
   "dependencies": {
     "express": "^4.16.4",
     "lodash": "^4.17.11",

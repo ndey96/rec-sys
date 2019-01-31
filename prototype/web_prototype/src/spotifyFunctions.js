@@ -1,6 +1,6 @@
-//spotifyFunctions.js
+//SpotifyFunctions.js
 
-import SpotifyWebApi from './spotifyWebApi'
+import SpotifyWebApi from './SpotifyWebApi'
 
 const spotifyWebApi = new SpotifyWebApi();
 const stateKey = 'spotify-auth-key';
@@ -10,7 +10,7 @@ const devBrowser = 'https://fydp-getrecd.appspot.com/'
 const prodBrowser = 'https://fydp-getrecd.appspot.com/'
 var topTrackIds = [String];
 var recommendedTrackIds = [String];
-var recommendedTrackUris = [String]
+var recommendedTrackUris = [String];
 
 export function authorize() {
       localStorage.removeItem(stateKey);
@@ -78,6 +78,7 @@ function getTopTracks() {
 
 // TODO: Call python script here
 function getRecommendations() {
+request.send();
   recommendedTrackIds = topTrackIds
   recommendedTrackIds.shift()
   for (var index in recommendedTrackIds) {
