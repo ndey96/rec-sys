@@ -2,7 +2,7 @@ from flask import Flask
 
 app = Flask(__name__)
 
-@app.route("/recommendations")
+@app.route("/getrecd")
 def GET():
     return "songIDS"
 

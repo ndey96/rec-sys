@@ -78,7 +78,6 @@ function getTopTracks() {
 
 // TODO: Call python script here
 function getRecommendations() {
-request.send();
   recommendedTrackIds = topTrackIds
   recommendedTrackIds.shift()
   for (var index in recommendedTrackIds) {
