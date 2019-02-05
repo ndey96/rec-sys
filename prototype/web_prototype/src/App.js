@@ -4,6 +4,13 @@ import {authorize, getHashParams, setToken, makePlaylist} from './SpotifyFunctio
 
 class App extends Component {
 
+  constructor() {
+      super()
+      this.state = {
+         myText: "Get Rec'd"
+      }
+  }
+
   componentDidMount() {
    let hashParams = getHashParams();
     if(!hashParams.access_token) {
@@ -12,7 +19,7 @@ class App extends Component {
       console.log(hashParams.access_token)
       setToken(hashParams.access_token);
       makePlaylist();
-
+      this.setState({myText: 'Check your Spotify account for a playlist called FYDPPlaylistTest'})
     }
     this.callBackendAPI()
       .then(res => this.setState({ data: res.express }))
@@ -32,7 +39,7 @@ class App extends Component {
   render() {
     return ( 
       <div className="App">
-      Get Rec'd
+        {this.state.myText}
       </div>
     );
   }
