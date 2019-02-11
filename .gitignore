@@ -4,6 +4,7 @@ data/*
 *mismatches.txt
 *train_triplets.txt
 *lastfm-dataset-360K
+.cache-*
 .idea/
 
 # Byte-compiled / optimized / DLL files
