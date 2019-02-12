@@ -16,7 +16,7 @@ msd = msd[['song_id'] + list(feature_MUSIC_dict.keys())]
 
 
 def get_MUSIC(song_ids):
-  song_vectors = msd.loc[msd['song_id'].isin(song_ids)][list(
-      feature_MUSIC_dict.keys())].values
-  return np.sum(
-      np.dot(song_vectors, feature_MUSIC_matrix), axis=0) / len(song_ids)
+    song_vectors = msd.loc[msd['song_id'].isin(song_ids)][list(
+        feature_MUSIC_dict.keys())].values
+    return np.sum(
+        np.dot(song_vectors, feature_MUSIC_matrix), axis=0) / len(song_ids)
