@@ -1,3 +1,6 @@
+import numpy as np
+import pandas as pd
+
 feature_MUSIC_dict = {
     'danceability': np.array([-0.37, 0.05, -0.35, 0.08, 0.43]),
     'energy': np.array([-0.64, -0.46, -0.13, 0.66, -0.03]),
@@ -6,14 +9,14 @@ feature_MUSIC_dict = {
     'loudness': np.array([-0.58, -0.19, -0.44, 0.79, -0.21]),
     'valence': np.array([-0.04, 0.18, 0.24, -0.34, 0.18]),
 }
+feature_MUSIC_matrix = [MUSIC for MUSIC in feature_MUSIC_dict.values()]
+
+msd = pd.read_hdf('data/full_msd_with_audio_features.h5', key='df')
+msd = msd[['song_id'] + list(feature_MUSIC_dict.keys())]
 
 
 def get_MUSIC(song_ids):
-  msd = pd.read_hdf('data/full_msd_with_audio_features.h5', key='df')
-  list_MUSIC = np.zeros(5)
-  for song_id in song_ids:
-    song_data = msd.loc[msd['song_id'] == song_id]
-    for feature, feature_MUSIC in feature_MUSIC_dict.items():
-      list_MUSIC += feature_MUSIC * list(song_data[feature])[0]
-
-  return list_MUSIC / len(song_ids)
+  song_vectors = msd.loc[msd['song_id'].isin(song_ids)][list(
+      feature_MUSIC_dict.keys())].values
+  return np.sum(
+      np.dot(song_vectors, feature_MUSIC_matrix), axis=0) / len(song_ids)
