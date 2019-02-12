@@ -81,14 +81,15 @@ function getRecommendations() {
   recommendedTrackIds = topTrackIds
   recommendedTrackIds.shift()
   for (var index in recommendedTrackIds) {
+
     recommendedTrackUris.push(uriBuilderString+recommendedTrackIds[index])
   }
   recommendedTrackUris.shift()
   console.log(recommendedTrackUris)
-  savePlaylist()
+  createAndSavePlaylist()
 }
 
-function savePlaylist() {
+function createAndSavePlaylist() {
   spotifyWebApi.createPlaylist({"name": playlistName})
   .then((response) => {
     console.log(response)
