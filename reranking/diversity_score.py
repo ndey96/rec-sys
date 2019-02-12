@@ -1,6 +1,9 @@
 import pandas as pd
+import numpy as np
+
 songs_df = pd.read_hdf('data/full_msd_with_audio_features.h5', key='df')
 
+# NOTE: if song_ids are passed in as normal strings, replace instances of song_id with prepare_song_id(song_id)
 
 def prepare_song_id(song_id):
   return ('b\'' + song_id + '\'')
@@ -23,9 +26,9 @@ def convert_recs_to_embeddings(song_ids):
   embeddings_list = []
 
   for song_id in song_ids:
-    #print(prepare_song_id(song_id))
-    if (prepare_song_id(song_id) in songs_df.song_id.values):
-      row = songs_df.loc[songs_df['song_id'] == prepare_song_id(song_id)]
+    # NOTE: if song_ids are passed in as normal strings, replace all following instances of song_id with prepare_song_id(song_id)
+    if (song_id in songs_df.song_id.values):
+      row = songs_df.loc[songs_df['song_id'] == song_id]
       embedding = row.iloc[:, 12:]
       embedding = np.array(embedding.values.tolist()[0])
       embeddings_list.append(embedding)
