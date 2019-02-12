@@ -1,3 +1,20 @@
 .App {
   text-align: center;
+  line-height: 10vmin;
+  color: #F0FCFC;
+  background-color: #414141;
+  height: 10vmin;
+}
+
+.App-logo {
+  height: 40vmin;
+}
+
+.App-header {
+  background-color: #B8DDDE;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }

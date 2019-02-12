@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import './App.css';
+import logo from './logo.svg';
 import {authorize, getHashParams, setToken, makePlaylist} from './SpotifyFunctions.js'
 
 class App extends Component {
@@ -19,7 +20,7 @@ class App extends Component {
       console.log(hashParams.access_token)
       setToken(hashParams.access_token);
       makePlaylist();
-      this.setState({myText: 'Check your Spotify account for a playlist called FYDPPlaylistTest'})
+      this.setState({myText: 'Check Spotify for a playlist called FYDPPlaylistTest'})
     }
     this.callBackendAPI()
       .then(res => this.setState({ data: res.express }))
@@ -40,6 +41,9 @@ class App extends Component {
     return ( 
       <div className="App">
         {this.state.myText}
+        <header className="App-header">
+          <img src={logo} className="App-logo" alt="logo" />
+        </header>
       </div>
     );
   }
