@@ -62,40 +62,46 @@ export function setToken(token: String) {
   spotifyWebApi.setAccessToken(token);
 }
 
-export function makePlaylist() {
-  getTopTracks()
+export function makePlaylist(callback) {
+  getTopTracks(() => {
+    callback()
+  });
 }
 
-function getTopTracks() {
+function getTopTracks(callback) {
   spotifyWebApi.getMyTopTracks()
     .then((response) => {
       for (var index in response['items']) {
         topTrackIds.push(response['items'][index]['id'])
       }
-      getRecommendations()
+      getRecommendations(() => {
+        callback();
+      });
     });
 }
 
 // TODO: Call python script here
-function getRecommendations() {
+function getRecommendations(callback) {
   recommendedTrackIds = topTrackIds
   recommendedTrackIds.shift()
   for (var index in recommendedTrackIds) {
-
     recommendedTrackUris.push(uriBuilderString+recommendedTrackIds[index])
   }
   recommendedTrackUris.shift()
   console.log(recommendedTrackUris)
-  createAndSavePlaylist()
+  createAndSavePlaylist(() => {
+      callback();
+  });
 }
 
-function createAndSavePlaylist() {
+function createAndSavePlaylist(callback) {
   spotifyWebApi.createPlaylist({"name": playlistName})
   .then((response) => {
     console.log(response)
     spotifyWebApi.addTracksToPlaylist(response['id'], {"uris": recommendedTrackUris})
     .then((response) => {
       console.log(response)
+      callback();
     });
   });
 }

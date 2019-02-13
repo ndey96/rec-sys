@@ -8,7 +8,7 @@ class App extends Component {
   constructor() {
       super()
       this.state = {
-         myText: "Get Rec'd"
+         myText: "Generating recommendations...please wait"
       }
   }
 
@@ -17,32 +17,19 @@ class App extends Component {
     if(!hashParams.access_token) {
       authorize();
     } else {
-      console.log(hashParams.access_token)
       setToken(hashParams.access_token);
-      makePlaylist();
-      this.setState({myText: 'Check Spotify for a playlist called FYDPPlaylistTest'})
+      makePlaylist(() => {
+        this.setState({myText: 'Check Spotify for a playlist called FYDPPlaylistTest'})
+      });
     }
-    this.callBackendAPI()
-      .then(res => this.setState({ data: res.express }))
-      .catch(err => console.log(err));
   }
-    // Fetches our GET route from the Express server. (Note the route we are fetching matches the GET route from server.js
-  callBackendAPI = async () => {
-    const response = await fetch('/');
-    const body = await response.json();
-
-    if (response.status !== 200) {
-      throw Error(body.message) 
-    }
-    return body;
-  };
 
   render() {
     return ( 
       <div className="App">
-        {this.state.myText}
+        Get Rec'd
         <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
+          {this.state.myText}
         </header>
       </div>
     );
