@@ -19,10 +19,13 @@ import codecs
 import logging
 import time
 import tqdm
+import pandas as pd
 
 import implicit.cuda
 
 import numpy as np
+
+from scipy.sparse import load_npz
 
 from implicit.als import AlternatingLeastSquares
 #from implicit.approximate_als import (AnnoyAlternatingLeastSquares, FaissAlternatingLeastSquares,
@@ -76,9 +79,9 @@ MODELS = {
 #          "faiss_als": FaissAlternatingLeastSquares,
 #          "tfidf": TFIDFRecommender,
 #          "cosine": CosineRecommender,
-#          "bpr": BayesianPersonalizedRanking,
+          "bpr": BayesianPersonalizedRanking,
 #          "bm25": BM25Recommender,
-#          "random":RandomRecommender
+          "random":RandomRecommender
 }
 
 
@@ -100,32 +103,49 @@ def get_model(model_name):
 
     return model_class(**params)
 
+USE_BUILTIN_DATA = False
+train_filename = './train_sparse.npz'
+test_filename = './test_sparse.npz'
+user_mapping_filename = 'user_mapping.csv'
+song_mapping_filename = 'song_mapping.csv'
 if __name__ == "__main__":
-    songs, users, plays = get_msd_taste_profile()
-#%%
+    if USE_BUILTIN_DATA:
+        songs, users, plays = get_msd_taste_profile()
+    else:
+        train_plays = load_npz(train_filename)
+        test_plays = load_npz(test_filename)
+        #Should be moved to hdf5 format since csv takes long time
+        songs = pd.read_csv(song_mapping_filename)
+        users = pd.read_csv(user_mapping_filename)
+
     
     MAPk_scores = []
     for model_name in MODELS:
         
         model = get_model(model_name)
-#        model = RandomRecommender(1,len(songs),1)
             # if we're training an ALS based model, weight input for last.fm
             # by bm25
         if issubclass(model.__class__, AlternatingLeastSquares):
-            bm25_play = bm25_weight(plays, K1=100, B=0.8)
-            train_plays, test_plays = train_test_split(bm25_play)
-            # lets weight these models by bm25weight.
-            logging.debug("weighting matrix by bm25_weight")
+            if USE_BUILTIN_DATA:
+                bm25_play = bm25_weight(plays, K1=100, B=0.8)
+                train_plays, test_plays = train_test_split(bm25_play)
+                # lets weight these models by bm25weight.
+                logging.debug("weighting matrix by bm25_weight")
 
-            # also disable building approximate recommend index
-#            model.approximate_similar_items = False
+                # also disable building approximate recommend index
+#                model.approximate_similar_items = False
+            else:
+                #perform operation to approximate confidence intervals
+                #paper doesn't specify an alpha value, so just guess alpha=1
+                alpha = 1
+                train_plays.data = 1+np.log(alpha*train_plays.data)
+                test_plays.data = 1+np.log(alpha*train_plays.data)
         else:
             train_plays, test_plays = train_test_split(plays)
 
         model.fit(train_plays)
         MAPk = mean_average_precision_at_k(model,train_plays,test_plays,K=10)
         MAPk_scores.append(MAPk)
-#        break
         
         
         print("MAP for "+str(model_name)+" is: "+ str(MAPk))
