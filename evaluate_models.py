@@ -26,6 +26,7 @@ import implicit.cuda
 import numpy as np
 
 from scipy.sparse import load_npz
+from scipy.sparse import csr_matrix
 
 from implicit.als import AlternatingLeastSquares
 #from implicit.approximate_als import (AnnoyAlternatingLeastSquares, FaissAlternatingLeastSquares,
@@ -40,10 +41,11 @@ from implicit.evaluation import train_test_split
 from implicit.evaluation import mean_average_precision_at_k
 
 class RandomRecommender:
-    def __init__(self,min_bound,high_bound,confidence):
-        self.min_bound = min_bound
-        self.high_bound = high_bound
-        self.confidence = confidence
+    def __init__(self):
+#        self.min_bound = min_bound
+#        self.high_bound = high_bound
+#        self.confidence = confidence
+        self.something=1
     
     def recommend(self,userid,train_csr,N):
         recs = np.random.randint(self.min_bound,self.high_bound,N)
@@ -51,6 +53,9 @@ class RandomRecommender:
         return recs
     
     def fit(self,train_data):
+        self.min_bound = 0
+        self.high_bound = train_data.shape[0]
+        self.confidence = 1
         return 1
     
 class AlternatingLeastSquaresDiversity(AlternatingLeastSquares):
@@ -79,9 +84,9 @@ MODELS = {
 #          "faiss_als": FaissAlternatingLeastSquares,
 #          "tfidf": TFIDFRecommender,
 #          "cosine": CosineRecommender,
-          "bpr": BayesianPersonalizedRanking,
+#          "bpr": BayesianPersonalizedRanking,
 #          "bm25": BM25Recommender,
-          "random":RandomRecommender
+#          "random":RandomRecommender
 }
 
 
@@ -117,7 +122,6 @@ if __name__ == "__main__":
         #Should be moved to hdf5 format since csv takes long time
         songs = pd.read_csv(song_mapping_filename)
         users = pd.read_csv(user_mapping_filename)
-
     
     MAPk_scores = []
     for model_name in MODELS:
@@ -139,12 +143,12 @@ if __name__ == "__main__":
                 #paper doesn't specify an alpha value, so just guess alpha=1
                 alpha = 1
                 train_plays.data = 1+np.log(alpha*train_plays.data)
-                test_plays.data = 1+np.log(alpha*train_plays.data)
-        else:
+                test_plays.data = 1+np.log(alpha*test_plays.data)
+        elif USE_BUILTIN_DATA:
             train_plays, test_plays = train_test_split(plays)
 
         model.fit(train_plays)
-        MAPk = mean_average_precision_at_k(model,train_plays,test_plays,K=10)
+        MAPk = mean_average_precision_at_k(model,train_plays.transpose(),test_plays.transpose(),K=5)
         MAPk_scores.append(MAPk)
         
         
