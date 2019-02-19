@@ -19,10 +19,14 @@ import codecs
 import logging
 import time
 import tqdm
+import pandas as pd
 
 import implicit.cuda
 
 import numpy as np
+
+from scipy.sparse import load_npz
+from scipy.sparse import csr_matrix
 
 from implicit.als import AlternatingLeastSquares
 #from implicit.approximate_als import (AnnoyAlternatingLeastSquares, FaissAlternatingLeastSquares,
@@ -37,10 +41,11 @@ from implicit.evaluation import train_test_split
 from implicit.evaluation import mean_average_precision_at_k
 
 class RandomRecommender:
-    def __init__(self,min_bound,high_bound,confidence):
-        self.min_bound = min_bound
-        self.high_bound = high_bound
-        self.confidence = confidence
+    def __init__(self):
+#        self.min_bound = min_bound
+#        self.high_bound = high_bound
+#        self.confidence = confidence
+        self.something=1
     
     def recommend(self,userid,train_csr,N):
         recs = np.random.randint(self.min_bound,self.high_bound,N)
@@ -48,6 +53,9 @@ class RandomRecommender:
         return recs
     
     def fit(self,train_data):
+        self.min_bound = 0
+        self.high_bound = train_data.shape[0]
+        self.confidence = 1
         return 1
     
 class AlternatingLeastSquaresDiversity(AlternatingLeastSquares):
@@ -100,32 +108,48 @@ def get_model(model_name):
 
     return model_class(**params)
 
+USE_BUILTIN_DATA = False
+train_filename = './train_sparse.npz'
+test_filename = './test_sparse.npz'
+user_mapping_filename = 'user_mapping.csv'
+song_mapping_filename = 'song_mapping.csv'
 if __name__ == "__main__":
-    songs, users, plays = get_msd_taste_profile()
-#%%
+    if USE_BUILTIN_DATA:
+        songs, users, plays = get_msd_taste_profile()
+    else:
+        train_plays = load_npz(train_filename)
+        test_plays = load_npz(test_filename)
+        #Should be moved to hdf5 format since csv takes long time
+        songs = pd.read_csv(song_mapping_filename)
+        users = pd.read_csv(user_mapping_filename)
     
     MAPk_scores = []
     for model_name in MODELS:
         
         model = get_model(model_name)
-#        model = RandomRecommender(1,len(songs),1)
             # if we're training an ALS based model, weight input for last.fm
             # by bm25
         if issubclass(model.__class__, AlternatingLeastSquares):
-            bm25_play = bm25_weight(plays, K1=100, B=0.8)
-            train_plays, test_plays = train_test_split(bm25_play)
-            # lets weight these models by bm25weight.
-            logging.debug("weighting matrix by bm25_weight")
+            if USE_BUILTIN_DATA:
+                bm25_play = bm25_weight(plays, K1=100, B=0.8)
+                train_plays, test_plays = train_test_split(bm25_play)
+                # lets weight these models by bm25weight.
+                logging.debug("weighting matrix by bm25_weight")
 
-            # also disable building approximate recommend index
-#            model.approximate_similar_items = False
-        else:
+                # also disable building approximate recommend index
+#                model.approximate_similar_items = False
+            else:
+                #perform operation to approximate confidence intervals
+                #paper doesn't specify an alpha value, so just guess alpha=1
+                alpha = 1
+                train_plays.data = 1+np.log(alpha*train_plays.data)
+                test_plays.data = 1+np.log(alpha*test_plays.data)
+        elif USE_BUILTIN_DATA:
             train_plays, test_plays = train_test_split(plays)
 
         model.fit(train_plays)
-        MAPk = mean_average_precision_at_k(model,train_plays,test_plays,K=10)
+        MAPk = mean_average_precision_at_k(model,train_plays.transpose(),test_plays.transpose(),K=5)
         MAPk_scores.append(MAPk)
-#        break
         
         
         print("MAP for "+str(model_name)+" is: "+ str(MAPk))

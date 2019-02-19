@@ -15,6 +15,8 @@ import tqdm
 
 import numpy as np
 
+import pandas as pd
+
 
 from implicit.als import AlternatingLeastSquares
 #from implicit.approximate_als import (AnnoyAlternatingLeastSquares, FaissAlternatingLeastSquares,
@@ -53,6 +55,7 @@ MODELS = {"als":  AlternatingLeastSquares,
           "bm25": BM25Recommender,
           "random":RandomRecommender}
 
+NUM_FACTORS = 16
 
 def get_model(model_name):
     print("getting model %s" % model_name)
@@ -62,7 +65,7 @@ def get_model(model_name):
 
     # some default params
     if issubclass(model_class, AlternatingLeastSquares):
-        params = {'factors': 16, 'dtype': np.float32}
+        params = {'factors': NUM_FACTORS, 'dtype': np.float32}
     elif model_name == "bm25":
         params = {'K1': 100, 'B': 0.5}
     elif model_name == "bpr":
@@ -101,14 +104,19 @@ if __name__ == "__main__":
         recommendations = model.recommend(i,train_plays,num_recommendations)
         recs_with_songid = [(songs[rec[0]][0],users[i]) for rec in recommendations]
         complete_recs.append(recs_with_songid)
-        
+    
+    song_info = ['song_id','artist','album','song_name']
+    embedding_feature_columns = ["embedding_feature_"+str(i) for i in range(NUM_FACTORS)]
+    
+    data = np.hstack((songs,model.item_factors))
+    column_name = song_info+embedding_feature_columns
+    embeddings = pd.DataFrame(columns= column_name, data = data)
+    
     for song, embedding in zip(songs, model.item_factors):
         embedding_mapping.append([song,embedding])
     
     embedding_mapping = np.array(embedding_mapping)
     complete_recs = np.array(complete_recs)
     np.save("recommendations",complete_recs)
-    np.save('embeddings',embedding_mapping)
-    
-        
-        
+#    np.save('embeddings',embedding_mapping)
+    embeddings.to_csv('embeddings.csv')
