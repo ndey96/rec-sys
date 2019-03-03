@@ -19,9 +19,9 @@ from scipy.sparse import save_npz
 # The base triplets is available at: https://labrosa.ee.columbia.edu/millionsong/tasteprofile
 
 #NOTE: Modify library code to not be hardcoded in the _read_... function
-train_base_path = './Data/train_triplets.txt'
-train_test_path = './Data/EvalDataYear1MSDWebsite/year1_test_triplets_visible.txt'
-test_path = './Data/EvalDataYear1MSDWebsite/year1_test_triplets_hidden.txt'
+train_base_path = './data/train_triplets.txt'
+train_test_path = './data/year1_test_triplets_visible.txt'
+test_path = './data/year1_test_triplets_hidden.txt'
 
 print("Reading in Data")
 train_partial_data = _read_triplets_dataframe(train_test_path)
