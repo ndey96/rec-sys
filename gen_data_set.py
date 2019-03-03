@@ -62,20 +62,20 @@ train_plays = coo_matrix((data_train,(rows_train,cols_train)),shape=(num_songs,n
 
 #%%
 #Save to file
-train_filename = 'train_sparse'
-test_filename = 'test_sparse'
-user_mapping_filename = 'user_mapping.csv'
-song_mapping_filename = 'song_mapping.csv'
+train_filename = './data/train_sparse'
+test_filename = './data/test_sparse'
+user_mapping_filename = './data/user_mapping.h5'
+song_mapping_filename = './data/song_mapping.h5'
 
 user_mapping = np.vstack((data['user'].cat.codes.copy().values,data['user'].values)).T
 song_mapping = np.vstack((data['track'].cat.codes.copy().values,data['track'].values)).T
 
-user_id_to_user_index = pd.DataFrame(columns=['user','sparse_index'],data=user_mapping)
-song_id_to_song_index = pd.DataFrame(columns=['track','sparse_index'],data=song_mapping)
+user_id_to_user_index = pd.DataFrame(columns=['sparse_index','user'],data=user_mapping).drop_duplicates()
+song_id_to_song_index = pd.DataFrame(columns=['sparse_index','track'],data=song_mapping).drop_duplicates()
 #Should be moved to hdf5 format since csv takes long time
-user_id_to_user_index.to_csv(user_mapping_filename)
-song_id_to_song_index.to_csv(song_mapping_filename)
+#%%
+user_id_to_user_index.to_hdf(user_mapping_filename,key='df')
+song_id_to_song_index.to_hdf(song_mapping_filename,key='df')
 
 save_npz(train_filename,train_plays)
 save_npz(test_filename,test_plays)
-
