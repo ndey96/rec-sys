@@ -39,12 +39,13 @@ def baseline_cf_model(train_plays):
     return cf_model
     
 #%%
-load_data = True
+load_data = False
 if load_data == True:
     print("Loading Data")
-    user_playlist_df = pd.read_hdf('data/userid_playlist.h5', key='df')
-    user_MUSIC_df = pd.read_hdf('data/user_MUSIC_num_songs.h5', key='df')
-
+#    user_playlist_df = pd.read_hdf('data/userid_playlist.h5', key='df')
+#    user_MUSIC_df = pd.read_hdf('data/user_MUSIC_num_songs.h5', key='df')
+    user_df = pd.read_hdf('data/user_df.h5', key='df')
+    
 # train_plays, test_plays -> num_songs x num_users CSR matrix
     train_plays = load_npz('data/train_sparse.npz')
     test_plays = load_npz('data/test_sparse.npz')
@@ -61,9 +62,13 @@ if load_data == True:
 # - The number of iterations in the als algorithm
 # - the joining of n and m in the recommendation algirhtm
 print("Building Model")
-model = ALSpkNN.ALSpkNN(user_MUSIC_df,users_mapping,songs_mapping,user_playlist_df)
-model.fit(train_plays)
+#model = ALSpkNN.ALSpkNN(user_df,users_mapping,songs_mapping)
+print("Fitting the Model")
+#model.fit(train_plays)
 
-example_sparse_user_id_in_all_df = 1119317
-recs = model.recommend(example_sparse_user_id_in_all_df,train_plays,5)
-#MAPk = mean_average_precision_at_k(model,train_plays.transpose(),test_plays.transpose(),K=5)
+#example_sparse_user_id_in_all_df = 1119317
+print("Evaluating the Model")
+#recs = model.recommend(example_sparse_user_id_in_all_df,train_plays,5)
+MAPk = mean_average_precision_at_k(model,train_plays.transpose(),test_plays.transpose(),K=5)
+
+print("MAPK is: " + str(MAPk))
