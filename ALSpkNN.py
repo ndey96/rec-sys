@@ -7,6 +7,7 @@ from scipy.spatial import KDTree
 import numpy as np
 from collections import Counter
 import utilities
+import time
 
 def cf_weighting(csr_mat):
     alpha = 1
@@ -61,8 +62,9 @@ class ALSpkNN():
     def _get_closest_MUSIC_user_ids(self, user_id, k, user_MUSIC_df, kdtree):
         print("Finding user " + str(user_id))
         user_MUSIC = user_MUSIC_df.loc[user_MUSIC_df['user_id'] == user_id]['MUSIC'].tolist()[0]
-
+        
         distances, indices = kdtree.query(user_MUSIC, k)
+        
         closest_userids = []
 
         for index in indices:
@@ -74,13 +76,10 @@ class ALSpkNN():
     
     #note: userid is not the csr user id
     def get_knn_top_m_songs(self, user_id, k, m, kdtree, user_playlist_df, user_MUSIC_df):
+        
         closest_userids = self._get_closest_MUSIC_user_ids(user_id, k, user_MUSIC_df, kdtree)
-        closest_user_songs = []
-        for i in range(len(closest_userids)):
-            closest_user_songs.append(user_playlist_df.loc[user_playlist_df[
-                    'user_id'] == closest_userids[i]]['song_ids'].tolist()[0])
 
-        closest_user_songs = [item for sublist in closest_user_songs for item in sublist]
+        closest_user_songs = user_playlist_df.loc[user_playlist_df['user_id'].isin(closest_userids)]['song_ids'].tolist()[0]
         counted_closest_user_songs = Counter(closest_user_songs)
         top_m_songs = [i[0] for i in counted_closest_user_songs.most_common()[:m]]
 
@@ -107,7 +106,6 @@ class ALSpkNN():
                                       kdtree=self.kdtree,
                                       user_playlist_df=self._user_df[['user_id','song_ids']],
                                       user_MUSIC_df=self._user_df[['MUSIC','num_songs','user_id']])
-        
         
         #I don't think this is very efficient for looking up
         m_songs = [self._song_mapping.loc[self._song_mapping.track == song].sparse_index.values[0] for song in m_songs]
