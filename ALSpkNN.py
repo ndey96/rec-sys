@@ -21,6 +21,7 @@ class ALSpkNN():
                  song_mapping,
                  k=100,
                  knn_frac=0.5,
+                 min_overlap=0.05,
                  cf_weighting_alpha=1):
         self.user_mapping = user_mapping
         self.song_mapping = song_mapping
@@ -28,6 +29,7 @@ class ALSpkNN():
         self.cf_weighting_alpha = cf_weighting_alpha
         self.knn_frac = knn_frac
         self.k = k
+        self.min_overlap = min_overlap
         self.kdtree = KDTree(user_df['MUSIC'].tolist())
 
         #build the collaborative filtering model with params hardcoded
@@ -106,8 +108,7 @@ class ALSpkNN():
         user_id = self.user_mapping.loc[self.user_mapping['sparse_index'] ==
                                         user_sparse_index]['user'].values[0]
 
-        min_overlap = 0.05
-        m_songs = self.get_knn_top_m_songs(user_id=user_id, m=m, min_overlap=min_overlap)
+        m_songs = self.get_knn_top_m_songs(user_id=user_id, m=m, min_overlap=self.min_overlap)
 
         # TODO: use a left join to speed this up?
         m_songs = [

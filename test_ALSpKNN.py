@@ -44,7 +44,7 @@ def baseline_cf_model(train_plays):
 
 
 #%%
-load_data = True
+load_data = False
 if load_data == True:
     print("Loading Data")
     #    user_playlist_df = pd.read_hdf('data/userid_playlist.h5', key='df')
@@ -73,6 +73,7 @@ model = ALSpkNN(
     songs_mapping,
     k=100,
     knn_frac=0.5,
+    min_overlap=0.05,
     cf_weighting_alpha=1)
 print("Fitting model...")
 model.fit(train_plays)
