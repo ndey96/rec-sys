@@ -6,7 +6,7 @@ from scipy.sparse import load_npz
 from scipy.sparse import csr_matrix
 from implicit.als import AlternatingLeastSquares
 
-import ALSpkNN
+from ALSpkNN import ALSpkNN
 from implicit.evaluation import mean_average_precision_at_k
 
 
@@ -44,7 +44,7 @@ def baseline_cf_model(train_plays):
 
 
 #%%
-load_data = False
+load_data = True
 if load_data == True:
     print("Loading Data")
     #    user_playlist_df = pd.read_hdf('data/userid_playlist.h5', key='df')
