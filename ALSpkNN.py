@@ -9,6 +9,25 @@ import time
 from random import shuffle
 import itertools
 
+
+def get_baseline_cf_model():
+    als_params = {
+        'factors': 16,
+        'dtype': np.float32,
+        'iterations': 2,
+        'calculate_training_loss': True
+    }
+    cf_model = AlternatingLeastSquares(**als_params)
+    return cf_model
+
+
+def weight_cf_matrix(csr_mat, alpha):
+    #don't want to modify original incase it gets put into other models
+    weighted_csr_mat = csr_mat.copy()
+    weighted_csr_mat.data = 1 + np.log(alpha * csr_mat.data)
+    return weighted_csr_mat
+
+
 class ALSpkNN():
     '''
     knn_frac = % of KNN recommendations
@@ -17,15 +36,14 @@ class ALSpkNN():
 
     def __init__(self,
                  user_df,
-                 user_mapping,
-                 song_mapping,
+                 song_df,
                  k=100,
                  knn_frac=0.5,
-                 min_overlap=0.05,
+                 min_overlap=0,
                  cf_weighting_alpha=1):
-        self.user_mapping = user_mapping
-        self.song_mapping = song_mapping
+
         self.user_df = user_df
+        self.song_df = song_df
         self.cf_weighting_alpha = cf_weighting_alpha
         self.knn_frac = knn_frac
         self.k = k
@@ -42,25 +60,25 @@ class ALSpkNN():
         self.cf_model = AlternatingLeastSquares(**als_params)
 
     def fit(self, train_csr):
-        #don't want to modify original incase it gets put into other models
-        weighted_train_csr = train_csr.copy()
-        weighted_train_csr.data = 1 + np.log(
-            self.cf_weighting_alpha * train_csr.data)
+        weighted_train_csr = weight_cf_matrix(train_csr,
+                                              self.cf_weighting_alpha)
         self.cf_model.fit(weighted_train_csr)
-    
+
     def calculate_overlap(self, list_1, list_2):
         overlap = len(set(list_1) & set(list_2))
         total = len(set(list_1)) + len(set(list_2))
-        
-        return float(overlap)/total
-        
+
+        return float(overlap) / total
+
     def get_overlap_list(self, user_id, closest_user_songs):
-        
+
         overlap_list = []
-        songs = self.user_df.loc[self.user_df['user_id'] == user_id]['song_ids'].values[0]
+        songs = self.user_df.loc[self.user_df['user_id'] == user_id][
+            'song_ids'].values[0]
         for i in range(len(closest_user_songs)):
-            overlap_list.append(self.calculate_overlap(songs, closest_user_songs[i]))
-        
+            overlap_list.append(
+                self.calculate_overlap(songs, closest_user_songs[i]))
+
         return overlap_list
 
     # Returns list of song_ids
@@ -76,14 +94,15 @@ class ALSpkNN():
         # closest_user_songs -> list of lists of song_ids, len(closest_user_songs) == k
         closest_user_songs = self.user_df.loc[self.user_df['user_id'].isin(
             closest_user_ids)]['song_ids'].values
-        
+
         # calculate overlap for all songlists and delete those without enough overlap
         insufficient_overlap_indices = []
         overlap_list = self.get_overlap_list(user_id, closest_user_songs)
         for i in range(len(closest_user_songs)):
             if overlap_list[i] < min_overlap:
                 insufficient_overlap_indices.append(i)
-        closest_user_songs = np.delete(closest_user_songs, insufficient_overlap_indices)
+        closest_user_songs = np.delete(closest_user_songs,
+                                       insufficient_overlap_indices)
 
         # closest_user_songs_flat -> list of song_ids
         closest_user_songs_flat = itertools.chain.from_iterable(
@@ -108,7 +127,8 @@ class ALSpkNN():
         user_id = self.user_mapping.loc[self.user_mapping['sparse_index'] ==
                                         user_sparse_index]['user'].values[0]
 
-        m_songs = self.get_knn_top_m_songs(user_id=user_id, m=m, min_overlap=self.min_overlap)
+        m_songs = self.get_knn_top_m_songs(
+            user_id=user_id, m=m, min_overlap=self.min_overlap)
 
         # TODO: use a left join to speed this up?
         m_songs = [
@@ -120,5 +140,6 @@ class ALSpkNN():
         hopefully_unimportant_val = 0.69
 
         m_songs = [(song, hopefully_unimportant_val) for song in m_songs]
-        rec_list = utilities.concat_shuffle(n_songs, m_songs)
+        # rec_list = utilities.concat_shuffle(n_songs, m_songs)
+        rec_list = n_songs + m_songs
         return rec_list[:N]
