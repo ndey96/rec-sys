@@ -16,7 +16,7 @@ def get_user_recs(user_index, model, train_user_items, K):
         rec[0]
         for rec in model.recommend(user_index, train_user_items, N=K)
     ]
-    return {user_index: recommended_song_indices}
+    return recommended_song_indices
 
 
 def multi_mean_average_precision_at_k(model,
@@ -34,24 +34,25 @@ def multi_mean_average_precision_at_k(model,
 
     start = time.time()
     print('Starting pool.map')
-    # user_recs -> [{user_index: recommended_song_indices}]
+    # user_recs -> [recommended_song_indices] -> index of element corresponds to user_index position
     user_recs = Pool().map(
         func=partial(get_user_recs, model=model, train_user_items=train_user_items, K=K),
+        # iterable=list(user_to_listened_songs_map.keys())[:10000],
         iterable=user_to_listened_songs_map.keys(),
         chunksize=625
     )
     print(f'recs: {time.time() - start}s')
 
-    # user_to_recs_map -> {user_index: recommended_song_indices}
-    user_to_recs_map = {}
-    for user_rec_dict in user_recs:
-        user_to_recs_map.update(user_rec_dict)
+    # # user_to_recs_map -> {user_index: recommended_song_indices}
+    # user_to_recs_map = {}
+    # for user_rec_dict in user_recs:
+    #     user_to_recs_map.update(user_rec_dict)
 
     start = time.time()
     average_precision_sum = 0
-    for user_index in user_to_listened_songs_map.keys():
+    for i, user_index in enumerate(user_to_listened_songs_map.keys()):
         listened_song_indices = user_to_listened_songs_map[user_index]
-        recommended_song_indices = user_to_recs_map[user_index]
+        recommended_song_indices = user_recs[i]
 
         start = time.time()
         precision_sum = 0
@@ -113,7 +114,7 @@ if __name__ == '__main__':
     # print(recs)
 
     # start = time.time()
-    # MAPk = py_mean_average_precision_at_k(
+    # MAPk = multi_mean_average_precision_at_k(
     #     model,
     #     train_plays.transpose(),
     #     test_plays.transpose(),
