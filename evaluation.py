@@ -20,9 +20,9 @@ def get_user_recs(user_index, model, train_user_items, K):
 
 
 def multi_mean_average_precision_at_k(model,
-                                   train_user_items,
-                                   test_user_items,
-                                   K=10):
+                                      train_user_items,
+                                      test_user_items,
+                                      K=10):
     user_items_coo = test_user_items.tocoo()
 
     # user_to_listened_songs_map -> {user_index: listened_song_indices}
@@ -42,28 +42,27 @@ def multi_mean_average_precision_at_k(model,
     )
     print(f'recs: {time.time() - start}s')
 
-    start = time.time()
     # user_to_recs_map -> {user_index: recommended_song_indices}
     user_to_recs_map = {}
     for user_rec_dict in user_recs:
         user_to_recs_map.update(user_rec_dict)
 
+    start = time.time()
     average_precision_sum = 0
     for user_index in user_to_listened_songs_map.keys():
         listened_song_indices = user_to_listened_songs_map[user_index]
         recommended_song_indices = user_to_recs_map[user_index]
 
+        start = time.time()
         precision_sum = 0
         for k in range(1, K):
             num_correct_recs = len(listened_song_indices.intersection(recommended_song_indices[:k]))
             precision_sum += num_correct_recs / k
-            precision_sum += precision
 
         average_precision_sum += precision_sum / min(K, len(listened_song_indices))
-
+    
     print(f'MAP: {time.time() - start}s')
-
-    return np.mean(average_precisions)
+    return average_precision_sum / len(user_to_listened_songs_map)
 
 def py_mean_average_precision_at_k(model,
                                    train_user_items,
@@ -78,13 +77,9 @@ def py_mean_average_precision_at_k(model,
         user_to_listened_songs_map[user_index].add(song_index)
 
     average_precision_sum = 0
-    for user_index, listened_song_indices in tqdm(user_to_listened_songs_map.items()):
-        start = time.time()
-        recommended_song_indices = [
-            rec[0]
-            for rec in model.recommend(user_index, train_user_items, N=K)
-        ]
-        # print(f'recs: {time.time() - start}s')
+    for user_index in user_to_listened_songs_map.keys():
+        listened_song_indices = user_to_listened_songs_map[user_index]
+        recommended_song_indices = user_to_recs_map[user_index]
 
         start = time.time()
         precision_sum = 0
@@ -93,7 +88,6 @@ def py_mean_average_precision_at_k(model,
             precision_sum += num_correct_recs / k
 
         average_precision_sum += precision_sum / min(K, len(listened_song_indices))
-        # print(f'ap total: {time.time() - start}s')
     
     return average_precision_sum / len(user_to_listened_songs_map)
 
