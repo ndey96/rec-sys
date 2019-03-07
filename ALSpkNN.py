@@ -41,7 +41,7 @@ class ALSpkNN():
                  knn_frac=0.5,
                  min_overlap=0.05,
                  cf_weighting_alpha=1):
-        
+
         self.user_df = user_df
         self.song_df = song_df
         self.cf_weighting_alpha = cf_weighting_alpha
@@ -92,9 +92,10 @@ class ALSpkNN():
 
         # calculate overlap for all songlists and delete those without enough overlap
         insufficient_overlap_indices = []
-        
+
         # user_id = user_sparse_index
-        overlap_list = self.get_overlap_list(user_sparse_index, closest_user_songs)
+        overlap_list = self.get_overlap_list(user_sparse_index,
+                                             closest_user_songs)
         for i in range(len(closest_user_songs)):
             if overlap_list[i] < min_overlap:
                 insufficient_overlap_indices.append(i)
@@ -115,45 +116,23 @@ class ALSpkNN():
         
         return top_m_songs
 
-    # Returns list of song_ids
-#     def get_knn_top_m_song_ids(self, user_sparse_index, m):
-#         user_MUSIC = self.user_df.loc[user_sparse_index]['MUSIC']
-#         distances, indices = self.kdtree.query(user_MUSIC, self.k, p=1)
-#         # TODO: maybe sort indices by distance if they are not already sorted?
+	# Returns [song_sparse_index]
 
-#         # closest_user_songs -> list of lists of song_ids, len(closest_user_songs) == k
-#         closest_user_songs = self.user_df.loc[indices]['song_ids'].values
-
-#         # closest_user_songs_flat -> list of song_ids
-#         closest_user_songs_flat = itertools.chain.from_iterable(
-#             closest_user_songs)
-
-#         top_m_songs = [
-#             i[0] for i in Counter(closest_user_songs_flat).most_common(m)
-#         ]
-#         return top_m_songs
-
-    # Returns [(song_sparse_index, confidence)]
     def recommend(self, user_sparse_index, train_plays_transpose, N):
         # m -> number of songs from KNN recs
         m = int(np.round(self.knn_frac * N))
         # n -> number of songs from CF recs
         n = N - m
 
-        n_songs = self.cf_model.recommend(
+        n_song_tuples = self.cf_model.recommend(
             userid=user_sparse_index, user_items=train_plays_transpose, N=n)
+        n_songs = [song_tuple[0] for song_tuple in n_song_tuples]
 
-        # user_id = self.user_df.loc[self.user_df['sparse_index'] ==
-        #                            user_sparse_index]['user_id']
-        m_songs = self.get_knn_top_m_song_ids(
-            user_sparse_index=user_sparse_index, m=m, min_overlap=self.min_overlap)
-        
-        # TODO: get this back to using index rather than lookup
-        # m_songs = self.song_df.loc[m_song_ids]['sparse_index'].tolist()
+        m_song_ids = self.get_knn_top_m_song_ids(
+            user_sparse_index=user_sparse_index,
+            m=m,
+            min_overlap=self.min_overlap)
+        m_songs = self.song_df.loc[m_song_ids]['sparse_index'].tolist()
 
-        #I don't think score/confidence is used in MAP@k function, so it doesn't matter what value is filled
-        hopefully_unimportant_val = 0.69
-
-        m_songs = [(song, hopefully_unimportant_val) for song in m_songs]
         rec_list = utilities.concat_shuffle(n_songs, m_songs)
         return rec_list[:N]
