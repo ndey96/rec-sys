@@ -44,7 +44,7 @@ def baseline_cf_model(train_plays):
 
 
 #%%
-load_data = False
+load_data = True
 if load_data == True:
     print("Loading Data")
     #    user_playlist_df = pd.read_hdf('data/userid_playlist.h5', key='df')
@@ -55,11 +55,13 @@ if load_data == True:
     train_plays = load_npz('data/train_sparse.npz')
     test_plays = load_npz('data/test_sparse.npz')
 
-    # songs -> CSR_row_index: song_id
-    songs_mapping = pd.read_hdf('data/song_mapping.h5', key='df')
+#     # songs -> CSR_row_index: song_id
+#     songs_mapping = pd.read_hdf('data/song_mapping.h5', key='df')
 
-    # users -> CSR_col_index: user_id
-    users_mapping = pd.read_hdf('data/user_mapping.h5', key='df')
+#     # users -> CSR_col_index: user_id
+#     users_mapping = pd.read_hdf('data/user_mapping.h5', key='df')
+
+    song_df = pd.read_hdf('data/song_df.h5', key='df')
 
 #%%
 #things that can be optimized:
@@ -69,13 +71,12 @@ if load_data == True:
 print("Building model...")
 model = ALSpkNN(
     user_df,
-    users_mapping,
-    songs_mapping,
+    song_df,
     k=100,
     knn_frac=0.5,
     min_overlap=0.05,
     cf_weighting_alpha=1)
 print("Fitting model...")
 model.fit(train_plays)
-recs = model.recommend(user_sparse_index=21, train_plays=train_plays, N=5)
+recs = model.recommend(user_sparse_index=21, train_plays_transpose=train_plays, N=5)
 print(recs)
