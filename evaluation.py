@@ -108,56 +108,56 @@ def multi_mean_average_precision_at_k(model,
     return average_precision_sum / len(user_to_listened_songs_map)
 
 if __name__ == '__main__':
-    user_df = pd.read_hdf('data/user_df.h5', key='df')[['user_id', 'sparse_index', 'MUSIC', 'song_ids']]
-    # user_df = pd.read_hdf('data/user_df.h5', key='df')
-    user_df.set_index('sparse_index', inplace=True)
+    # user_df = pd.read_hdf('data/user_df.h5', key='df')[['user_id', 'sparse_index', 'MUSIC', 'song_ids']]
+    # # user_df = pd.read_hdf('data/user_df.h5', key='df')
+    # user_df.set_index('sparse_index', inplace=True)
 
-    song_df = pd.read_hdf('data/song_df.h5', key='df')[['song_id', 'sparse_index']]
-    # song_df = pd.read_hdf('data/song_df.h5', key='df')
-    song_df.set_index('song_id', inplace=True)
-    train_plays = load_npz('data/train_sparse.npz')
-    test_plays = load_npz('data/test_sparse.npz')
-
-    from ALSpkNN import ALSpkNN
-
-    print("Building model...")
-    model = ALSpkNN(user_df, song_df, k=100, knn_frac=0.5, cf_weighting_alpha=1)
-    print("Fitting model...")
-    model.fit(train_plays)
-    recs = model.recommend(user_sparse_index=12345, train_plays_transpose=train_plays.transpose(), N=5)
-    print(recs)
-
-    start = time.time()
-    MAPk = multi_mean_average_precision_at_k(
-        model,
-        train_user_items=train_plays.transpose(),
-        test_user_items=test_plays.transpose(),
-        K=5)
-    #     show_progress=False,
-    #     num_threads=0)
-
-    print("MAPK for ALSpKNN is: " + str(MAPk))
-    print(f'Calculation took {time.time() - start}s')
-
-    ##################################################################
-
+    # song_df = pd.read_hdf('data/song_df.h5', key='df')[['song_id', 'sparse_index']]
+    # # song_df = pd.read_hdf('data/song_df.h5', key='df')
+    # song_df.set_index('song_id', inplace=True)
     # train_plays = load_npz('data/train_sparse.npz')
     # test_plays = load_npz('data/test_sparse.npz')
 
-    # # print("Building and fitting the baseline CF model")
-    # baseline_cf_model = get_baseline_cf_model()
-    # # weighted_train_csr = weight_cf_matrix(train_plays, alpha=1)
-    # baseline_cf_model.fit(train_plays)
+    # from ALSpkNN import ALSpkNN
 
-    # # print("Evaluating the baseline CF model")
+    # print("Building model...")
+    # model = ALSpkNN(user_df, song_df, k=100, knn_frac=0.5, cf_weighting_alpha=1)
+    # print("Fitting model...")
+    # model.fit(train_plays)
+    # recs = model.recommend(user_sparse_index=12345, train_plays_transpose=train_plays.transpose(), N=5)
+    # print(recs)
+
     # start = time.time()
-
     # MAPk = multi_mean_average_precision_at_k(
-    #     model=baseline_cf_model,
+    #     model,
     #     train_user_items=train_plays.transpose(),
     #     test_user_items=test_plays.transpose(),
     #     K=5)
+    # #     show_progress=False,
+    # #     num_threads=0)
 
-    # print("MAPK for baseline CF is: " + str(MAPk))
+    # print("MAPK for ALSpKNN is: " + str(MAPk))
     # print(f'Calculation took {time.time() - start}s')
+
+    ##################################################################
+
+    train_plays = load_npz('data/train_sparse.npz')
+    test_plays = load_npz('data/test_sparse.npz')
+
+    # print("Building and fitting the baseline CF model")
+    baseline_cf_model = get_baseline_cf_model()
+    # weighted_train_csr = weight_cf_matrix(train_plays, alpha=1)
+    baseline_cf_model.fit(train_plays)
+
+    # print("Evaluating the baseline CF model")
+    start = time.time()
+
+    MAPk = multi_mean_average_precision_at_k(
+        model=baseline_cf_model,
+        train_user_items=train_plays.transpose(),
+        test_user_items=test_plays.transpose(),
+        K=5)
+
+    print("MAPK for baseline CF is: " + str(MAPk))
+    print(f'Calculation took {time.time() - start}s')
 
