@@ -109,14 +109,15 @@ class ALSpkNN():
         top_m_songs = [
             i[0] for i in Counter(closest_user_songs_flat).most_common(m)
         ]
-        
+
         user_songs = self.user_df.loc[user_sparse_index]['song_ids']
-        
+
         top_m_songs = set(top_m_songs) - set(user_songs)
-        
+
         return top_m_songs
 
-	# Returns [song_sparse_index]
+
+# Returns [song_sparse_index]
 
     def recommend(self, user_sparse_index, train_plays_transpose, N):
         # m -> number of songs from KNN recs
@@ -134,5 +135,6 @@ class ALSpkNN():
             min_overlap=self.min_overlap)
         m_songs = self.song_df.loc[m_song_ids]['sparse_index'].tolist()
 
-        rec_list = utilities.concat_shuffle(n_songs, m_songs)
+        rec_list = n_songs + m_songs
+        # utilities.concat_shuffle(n_songs, m_songs)
         return rec_list[:N]
