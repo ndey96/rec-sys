@@ -71,54 +71,55 @@ class ALSpkNN():
 
         return float(overlap) / total
 
-    def get_overlap_list(self, user_id, closest_user_songs):
+    def get_overlap_list(self, user_sparse_index,
+                         closest_user_song_sparse_indices):
 
         overlap_list = []
-        songs = self.user_df.loc[user_id]['song_ids']
-        for i in range(len(closest_user_songs)):
+        songs = self.user_df.loc[user_sparse_index]['song_ids']
+        for i in range(len(closest_user_song_sparse_indices)):
             overlap_list.append(
-                self.calculate_overlap(songs, closest_user_songs[i]))
+                self.calculate_overlap(songs,
+                                       closest_user_song_sparse_indices[i]))
 
         return overlap_list
 
-    # Returns list of song_ids
+    # Returns list of song_sparse_indices
     def get_knn_top_m_song_ids(self, user_sparse_index, m, min_overlap):
 
         user_MUSIC = self.user_df.loc[user_sparse_index]['MUSIC']
         distances, indices = self.kdtree.query(user_MUSIC, self.k, p=1)
         # TODO: maybe sort closest_user_ids by distance if they are not already sorted?
 
-        closest_user_songs = self.user_df.loc[indices]['song_ids'].values
+        closest_user_song_sparse_indices = self.user_df.loc[indices][
+            'song_sparse_indices'].values
 
         # calculate overlap for all songlists and delete those without enough overlap
         insufficient_overlap_indices = []
 
-        # user_id = user_sparse_index
         overlap_list = self.get_overlap_list(user_sparse_index,
-                                             closest_user_songs)
+                                             closest_user_song_sparse_indices)
         for i in range(len(closest_user_songs)):
             if overlap_list[i] < min_overlap:
                 insufficient_overlap_indices.append(i)
-        closest_user_songs = np.delete(closest_user_songs,
-                                       insufficient_overlap_indices)
+        closest_user_song_sparse_indices = np.delete(
+            closest_user_song_sparse_indices, insufficient_overlap_indices)
 
-        # closest_user_songs_flat -> list of song_ids
-        closest_user_songs_flat = itertools.chain.from_iterable(
-            closest_user_songs)
+        # closest_user_song_sparse_indices_flat -> list of song_ids
+        closest_user_song_sparse_indices_flat = itertools.chain.from_iterable(
+            closest_user_song_sparse_indices)
 
         top_m_songs = [
-            i[0] for i in Counter(closest_user_songs_flat).most_common(m)
+            i[0] for i in Counter(closest_user_song_sparse_indices_flat)
+            .most_common(m)
         ]
 
-        user_songs = self.user_df.loc[user_sparse_index]['song_ids']
+        user_songs = self.user_df.loc[user_sparse_index]['song_sparse_indices']
 
         top_m_songs = set(top_m_songs) - set(user_songs)
 
-        return top_m_songs
+        return top_m_song_sparse_indices
 
-
-# Returns [song_sparse_index]
-
+    # Returns [song_sparse_index]
     def recommend(self, user_sparse_index, train_plays_transpose, N):
         # m -> number of songs from KNN recs
         m = int(np.round(self.knn_frac * N))

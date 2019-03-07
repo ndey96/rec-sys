@@ -8,6 +8,8 @@ from scipy.sparse import load_npz
 from ALSpkNN import get_baseline_cf_model, weight_cf_matrix, ALSpkNN
 from functools import partial
 import os
+from sklearn import preprocessing
+
 # https://github.com/benfred/implicit/blob/master/implicit/evaluation.pyx
 
 # http://sdsawtelle.github.io/blog/output/mean-average-precision-MAP-for-recommender-systems.html
@@ -32,9 +34,6 @@ def get_user_recs_wrapper(user_index):
 
 def mean_average_precision_at_k(user_recs,
                                 user_to_listened_songs_map,
-                                model,
-                                train_user_items,
-                                test_user_items,
                                 K,
                                 limit):
 
@@ -55,12 +54,9 @@ def mean_average_precision_at_k(user_recs,
 # TODO: use play counts and scale song_vectors before calculating pdist
 # TOOD: refactor this code to work in this file!
 def get_cosine_list_dissimilarity(user_recs,
-                                  user_to_listened_songs_map,
-                                  model,
-                                  train_user_items,
-                                  test_user_items,
                                   K,
-                                  limit):
+                                  limit,
+                                  song_df):
     embedding_cols = [
         # 'year',
         'acousticness',
@@ -78,11 +74,17 @@ def get_cosine_list_dissimilarity(user_recs,
         'valence'
     ]
 
-    # song_vectors -> n x m matrix, where m is the number of audio features in the embedding_cols
-    song_vectors = sub_df[embedding_cols].values
-    if len(song_vectors) == 1:
-        return None
-    return np.mean(pdist(song_vectors, 'cosine'))
+    song_df[embedding_cols] = preprocessing.MinMaxScaler().fit_transform(song_df[embedding_cols])
+
+    list_dissim_sum = 0
+    for recommended_song_indices in user_recs:
+        # song_vectors -> n x m matrix, where m is the number of audio features in the embedding_cols
+        song_vectors = song_df[recommended_song_indices][embedding_cols].values
+        if len(song_vectors) == 1:
+            continue
+        list_dissim_sum += np.mean(pdist(song_vectors, 'cosine'))
+
+    return list_dissim_sum/len(user_recs)
 
 # eg: metrics = ['MAP@K', 'cosine_list_dissimilarity']
 # N = number of recommendations per user
@@ -92,7 +94,7 @@ def get_metrics(
     model,
     train_user_items,
     test_user_items,
-    song_df_sparse_indexed,
+    song_df,
     limit):
     
     user_items_coo = test_user_items.tocoo()
@@ -131,7 +133,9 @@ def get_metrics(
         print(f'MAP@K calculation time: {time.time() - start}s')
 
     if 'cosine_list_dissimilarity' in metrics:
+        start = time.time()
         calculated_metrics['cosine_list_dissimilarity'] = 69
+        print(f'MAP@K calculation time: {time.time() - start}s')
 
     return calculated_metrics
 
@@ -147,7 +151,7 @@ if __name__ == '__main__':
 
     print("Evaluating the baseline CF model")
     metrics = get_metrics(
-        metrics=['MAP@K', 'cosine_list_dissimilarity'],
+        metrics=['MAP@K', 'mean_cosine_list_dissimilarity'],
         N=5,
         model=baseline_cf_model,
         train_user_items=train_plays.transpose(),
