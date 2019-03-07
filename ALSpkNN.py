@@ -117,8 +117,6 @@ class ALSpkNN():
         distances, indices = self.kdtree.query(user_MUSIC, self.k, p=1)
         # TODO: maybe sort indices by distance if they are not already sorted?
 
-        # closest_user_ids = self.user_df.iloc[indices]['user_id'].to_list()
-
         # closest_user_songs -> list of lists of song_ids, len(closest_user_songs) == k
         closest_user_songs = self.user_df.loc[indices]['song_ids'].values
 

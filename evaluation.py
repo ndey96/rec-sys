@@ -5,43 +5,12 @@ from multiprocessing import Pool
 import time
 import pandas as pd
 from scipy.sparse import load_npz
-from ALSpkNN import get_baseline_cf_model, weight_cf_matrix
+from ALSpkNN import get_baseline_cf_model, weight_cf_matrix, ALSpkNN
 from functools import partial
 import os
 # https://github.com/benfred/implicit/blob/master/implicit/evaluation.pyx
 
 # http://sdsawtelle.github.io/blog/output/mean-average-precision-MAP-for-recommender-systems.html
-
-
-def py_mean_average_precision_at_k(model,
-                                   train_user_items,
-                                   test_user_items,
-                                   K=10):
-
-    user_items_coo = test_user_items.tocoo()
-    user_to_listened_songs_map = {}
-    for user_index, song_index in zip(user_items_coo.row, user_items_coo.col):
-        if user_index not in user_to_listened_songs_map:
-            user_to_listened_songs_map[user_index] = set()
-        user_to_listened_songs_map[user_index].add(song_index)
-
-    average_precision_sum = 0
-    for user_index in user_to_listened_songs_map.keys():
-        listened_song_indices = user_to_listened_songs_map[user_index]
-        recommended_song_indices = user_to_recs_map[user_index]
-
-        start = time.time()
-        precision_sum = 0
-        for k in range(1, K):
-            num_correct_recs = len(listened_song_indices.intersection(recommended_song_indices[:k]))
-            precision_sum += num_correct_recs / k
-
-        average_precision_sum += precision_sum / min(K, len(listened_song_indices))
-    
-    return average_precision_sum / len(user_to_listened_songs_map)
-
-
-
 
 def get_user_recs(user_index, K, model, train_user_items):
     recommended_song_indices = [
@@ -65,10 +34,57 @@ def initializer(K_init, model_init, train_user_items_init):
 def get_user_recs_wrapper(user_index):
     return get_user_recs(user_index, K, model, train_user_items)
 
-def multi_mean_average_precision_at_k(model,
-                                      train_user_items,
-                                      test_user_items,
-                                      K=10):
+def mean_average_precision_at_k(user_recs,
+                                user_to_listened_songs_map,
+                                model,
+                                train_user_items,
+                                test_user_items,
+                                K):
+
+    average_precision_sum = 0
+    for i, user_index in enumerate(user_to_listened_songs_map.keys()):
+        listened_song_indices = user_to_listened_songs_map[user_index]
+        recommended_song_indices = user_recs[i]
+
+        precision_sum = 0
+        for k in range(1, K):
+            num_correct_recs = len(listened_song_indices.intersection(recommended_song_indices[:k]))
+            precision_sum += num_correct_recs / k
+
+        average_precision_sum += precision_sum / min(K, len(listened_song_indices))
+    
+    return average_precision_sum / len(user_to_listened_songs_map)
+
+# TODO: use play counts and scale song_vectors before calculating pdist
+# TOOD: refactor this code to work in this file!
+def get_cosine_list_dissimilarity(song_df):
+    embedding_cols = [
+        # 'year',
+        'acousticness',
+        'danceability',
+        'duration_ms',
+        'energy',
+        'instrumentalness',
+        'key',
+        'liveness',
+        'loudness',
+        'mode',
+        'speechiness',
+        'tempo',
+        'time_signature',
+        'valence'
+    ]
+
+    # song_vectors -> n x m matrix, where m is the number of audio features in the embedding_cols
+    song_vectors = sub_df[embedding_cols].values
+    if len(song_vectors) == 1:
+        return None
+    return np.mean(pdist(song_vectors, 'cosine'))
+
+# eg: metrics = ['MAP@K', 'cosine_list_dissimilarity']
+# N = number of recommendations per user
+def get_metrics(metrics, N, model, train_user_items, test_user_items, song_df_sparse_indexed):
+    
     user_items_coo = test_user_items.tocoo()
 
     # user_to_listened_songs_map -> {user_index: listened_song_indices}
@@ -84,28 +100,29 @@ def multi_mean_average_precision_at_k(model,
     # user_recs -> [recommended_song_indices] -> index of element corresponds to user_index position
     user_recs = rec_pool.map(
         func=get_user_recs_wrapper,
-        iterable=list(user_to_listened_songs_map.keys())[:10000],
-        # iterable=user_to_listened_songs_map.keys(),
+        # iterable=list(user_to_listened_songs_map.keys())[:10000],
+        iterable=user_to_listened_songs_map.keys(),
         chunksize=625
     )
     print(f'recs: {time.time() - start}s')
 
-    start = time.time()
-    average_precision_sum = 0
-    for i, user_index in enumerate(user_to_listened_songs_map.keys()):
-        listened_song_indices = user_to_listened_songs_map[user_index]
-        recommended_song_indices = user_recs[i]
-
+    calculated_metrics = {}
+    if 'MAP@K' in metrics:
         start = time.time()
-        precision_sum = 0
-        for k in range(1, K):
-            num_correct_recs = len(listened_song_indices.intersection(recommended_song_indices[:k]))
-            precision_sum += num_correct_recs / k
+        map_at_k = mean_average_precision_at_k(
+            user_recs=user_recs,
+            user_to_listened_songs_map=user_to_listened_songs_map,
+            model=baseline_cf_model,
+            train_user_items=train_plays.transpose(),
+            test_user_items=test_plays.transpose(),
+            K=N)
+        calculated_metrics['MAP@K'] = map_at_k
+        print(f'MAP@K calculation time: {time.time() - start}s')
 
-        average_precision_sum += precision_sum / min(K, len(listened_song_indices))
-    
-    print(f'MAP: {time.time() - start}s')
-    return average_precision_sum / len(user_to_listened_songs_map)
+    if 'cosine_list_dissimilarity' in metrics:
+        # cosine_list_dissimilarity
+
+    return calculated_metrics
 
 if __name__ == '__main__':
     # user_df = pd.read_hdf('data/user_df.h5', key='df')[['user_id', 'sparse_index', 'MUSIC', 'song_ids']]
@@ -117,8 +134,6 @@ if __name__ == '__main__':
     # song_df.set_index('song_id', inplace=True)
     # train_plays = load_npz('data/train_sparse.npz')
     # test_plays = load_npz('data/test_sparse.npz')
-
-    # from ALSpkNN import ALSpkNN
 
     # print("Building model...")
     # model = ALSpkNN(user_df, song_df, k=100, knn_frac=0.5, cf_weighting_alpha=1)
@@ -133,8 +148,6 @@ if __name__ == '__main__':
     #     train_user_items=train_plays.transpose(),
     #     test_user_items=test_plays.transpose(),
     #     K=5)
-    # #     show_progress=False,
-    # #     num_threads=0)
 
     # print("MAPK for ALSpKNN is: " + str(MAPk))
     # print(f'Calculation took {time.time() - start}s')
