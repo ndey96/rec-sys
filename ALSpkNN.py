@@ -109,6 +109,10 @@ class ALSpkNN():
             i[0] for i in Counter(closest_user_songs_flat).most_common(m)
         ]
         
+        user_songs = self.user_df.loc[user_sparse_index]['song_ids']
+        
+        top_m_songs = set(top_m_songs) - set(user_songs)
+        
         return top_m_songs
 
     # Returns list of song_ids
