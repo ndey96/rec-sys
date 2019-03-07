@@ -13,11 +13,7 @@ import os
 # http://sdsawtelle.github.io/blog/output/mean-average-precision-MAP-for-recommender-systems.html
 
 def get_user_recs(user_index, K, model, train_user_items):
-    recommended_song_indices = [
-        rec[0]
-        for rec in model.recommend(user_index, train_user_items, N=K)
-    ]
-    return recommended_song_indices
+    return model.recommend(user_index, train_user_items, N=K)
 
 K = None
 model = None
@@ -58,7 +54,13 @@ def mean_average_precision_at_k(user_recs,
 
 # TODO: use play counts and scale song_vectors before calculating pdist
 # TOOD: refactor this code to work in this file!
-def get_cosine_list_dissimilarity(song_df):
+def get_cosine_list_dissimilarity(user_recs,
+                                  user_to_listened_songs_map,
+                                  model,
+                                  train_user_items,
+                                  test_user_items,
+                                  K,
+                                  limit):
     embedding_cols = [
         # 'year',
         'acousticness',
