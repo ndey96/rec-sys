@@ -39,10 +39,11 @@ def mean_average_precision_at_k(user_recs,
                                 model,
                                 train_user_items,
                                 test_user_items,
-                                K):
+                                K,
+                                limit):
 
     average_precision_sum = 0
-    for i, user_index in enumerate(user_to_listened_songs_map.keys()):
+    for i, user_index in enumerate(list(user_to_listened_songs_map.keys())[:limit]):
         listened_song_indices = user_to_listened_songs_map[user_index]
         recommended_song_indices = user_recs[i]
 
@@ -83,7 +84,14 @@ def get_cosine_list_dissimilarity(song_df):
 
 # eg: metrics = ['MAP@K', 'cosine_list_dissimilarity']
 # N = number of recommendations per user
-def get_metrics(metrics, N, model, train_user_items, test_user_items, song_df_sparse_indexed):
+def get_metrics(
+    metrics,
+    N,
+    model,
+    train_user_items,
+    test_user_items,
+    song_df_sparse_indexed,
+    limit):
     
     user_items_coo = test_user_items.tocoo()
 
@@ -94,17 +102,17 @@ def get_metrics(metrics, N, model, train_user_items, test_user_items, song_df_sp
             user_to_listened_songs_map[user_index] = set()
         user_to_listened_songs_map[user_index].add(song_index)
 
-    rec_pool = Pool(os.cpu_count(), initializer, (K, model, train_user_items))
+    rec_pool = Pool(os.cpu_count(), initializer, (N, model, train_user_items))
     start = time.time()
     print('Starting pool.map')
     # user_recs -> [recommended_song_indices] -> index of element corresponds to user_index position
     user_recs = rec_pool.map(
         func=get_user_recs_wrapper,
-        # iterable=list(user_to_listened_songs_map.keys())[:10000],
-        iterable=user_to_listened_songs_map.keys(),
+        iterable=list(user_to_listened_songs_map.keys())[:limit],
+        # iterable=user_to_listened_songs_map.keys(),
         chunksize=625
     )
-    print(f'recs: {time.time() - start}s')
+    print(f'recs time: {time.time() - start}s')
 
     calculated_metrics = {}
     if 'MAP@K' in metrics:
@@ -112,19 +120,42 @@ def get_metrics(metrics, N, model, train_user_items, test_user_items, song_df_sp
         map_at_k = mean_average_precision_at_k(
             user_recs=user_recs,
             user_to_listened_songs_map=user_to_listened_songs_map,
-            model=baseline_cf_model,
-            train_user_items=train_plays.transpose(),
-            test_user_items=test_plays.transpose(),
-            K=N)
+            model=model,
+            train_user_items=train_user_items,
+            test_user_items=test_user_items,
+            K=N,
+            limit=limit)
         calculated_metrics['MAP@K'] = map_at_k
         print(f'MAP@K calculation time: {time.time() - start}s')
 
     if 'cosine_list_dissimilarity' in metrics:
-        # cosine_list_dissimilarity
+        calculated_metrics['cosine_list_dissimilarity'] = 69
 
     return calculated_metrics
 
 if __name__ == '__main__':
+
+    train_plays = load_npz('data/train_sparse.npz')
+    test_plays = load_npz('data/test_sparse.npz')
+
+    print("Building and fitting the baseline CF model")
+    baseline_cf_model = get_baseline_cf_model()
+    # weighted_train_csr = weight_cf_matrix(train_plays, alpha=1)
+    baseline_cf_model.fit(train_plays)
+
+    print("Evaluating the baseline CF model")
+    metrics = get_metrics(
+        metrics=['MAP@K', 'cosine_list_dissimilarity'],
+        N=5,
+        model=baseline_cf_model,
+        train_user_items=train_plays.transpose(),
+        test_user_items=test_plays.transpose(),
+        song_df_sparse_indexed=None,
+        limit=1000)
+    print(metrics)
+
+    ##################################################################
+
     # user_df = pd.read_hdf('data/user_df.h5', key='df')[['user_id', 'sparse_index', 'MUSIC', 'song_ids']]
     # # user_df = pd.read_hdf('data/user_df.h5', key='df')
     # user_df.set_index('sparse_index', inplace=True)
@@ -151,26 +182,4 @@ if __name__ == '__main__':
 
     # print("MAPK for ALSpKNN is: " + str(MAPk))
     # print(f'Calculation took {time.time() - start}s')
-
-    ##################################################################
-
-    train_plays = load_npz('data/train_sparse.npz')
-    test_plays = load_npz('data/test_sparse.npz')
-
-    # print("Building and fitting the baseline CF model")
-    baseline_cf_model = get_baseline_cf_model()
-    # weighted_train_csr = weight_cf_matrix(train_plays, alpha=1)
-    baseline_cf_model.fit(train_plays)
-
-    # print("Evaluating the baseline CF model")
-    start = time.time()
-
-    MAPk = multi_mean_average_precision_at_k(
-        model=baseline_cf_model,
-        train_user_items=train_plays.transpose(),
-        test_user_items=test_plays.transpose(),
-        K=5)
-
-    print("MAPK for baseline CF is: " + str(MAPk))
-    print(f'Calculation took {time.time() - start}s')
 
