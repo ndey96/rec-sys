@@ -74,12 +74,12 @@ def get_cosine_list_dissimilarity(user_recs,
     ]
 
     song_df[embedding_cols] = preprocessing.MinMaxScaler().fit_transform(song_df[embedding_cols])
-    dissim_pool = Pool(os.cpu_count(), list_dissim_initializer, (song_df, embedding_cols))
-    list_dissims = dissim_pool.map(
-        func=get_user_list_dissim_wrapper,
-        iterable=user_recs[:limit],
-        chunksize=625
-    )
+    with Pool(os.cpu_count(), list_dissim_initializer, (song_df, embedding_cols)) as dissim_pool:
+        list_dissims = dissim_pool.map(
+            func=get_user_list_dissim_wrapper,
+            iterable=user_recs[:limit],
+            chunksize=625
+        )
     return np.mean(list_dissims)
     # for recommended_song_indices in user_recs[:limit]:
     #     # song_vectors -> n x m matrix, where m is the number of audio features in the embedding_cols
@@ -112,16 +112,16 @@ def get_metrics(
             user_to_listened_songs_map[user_index] = set()
         user_to_listened_songs_map[user_index].add(song_index)
 
-    rec_pool = Pool(os.cpu_count(), recs_initializer, (N, model, train_user_items))
     start = time.time()
     print('Starting pool.map')
-    # user_recs -> [recommended_song_indices] -> index of element corresponds to user_index position
-    user_recs = rec_pool.map(
-        func=get_user_recs_wrapper,
-        iterable=list(user_to_listened_songs_map.keys())[:limit],
-        # iterable=user_to_listened_songs_map.keys(),
-        chunksize=625
-    )
+    with Pool(os.cpu_count(), recs_initializer, (N, model, train_user_items)) as rec_pool:
+        # user_recs -> [recommended_song_indices] -> index of element corresponds to user_index position
+        user_recs = rec_pool.map(
+            func=get_user_recs_wrapper,
+            iterable=list(user_to_listened_songs_map.keys())[:limit],
+            # iterable=user_to_listened_songs_map.keys(),
+            chunksize=625
+        )
     if isinstance(user_recs[0][0], tuple):
         new_user_recs = []
         for user in user_recs:
@@ -203,7 +203,7 @@ if __name__ == '__main__':
 
     print("Building model...")
     NUM_VALS = 5
-    model = ALSpkNN(user_df, song_df, k=100, knn_frac=0.25, cf_weighting_alpha=1)
+    model = ALSpkNN(user_df, song_df, k=100, knn_frac=0.25, cf_weighting_alpha=1, min_overlap=0.05)
     print("Fitting model...")
     model.fit(train_plays)
     
