@@ -202,14 +202,14 @@ if __name__ == '__main__':
     ##################################################################
 
     print("Building model...")
-    NUM_VALS = 4
+    NUM_VALS = 5
     model = ALSpkNN(user_df, song_df, k=100, knn_frac=0.25, cf_weighting_alpha=1)
     print("Fitting model...")
     model.fit(train_plays)
     
     all_MAPk_vals = []
     all_cos_dissim_vals = []
-    limit_users = 999999
+    limit_users = 5000
     
     MAPk_vals = np.zeros(NUM_VALS)
     cos_dissim_vals = np.zeros(NUM_VALS)
@@ -250,7 +250,10 @@ if __name__ == '__main__':
     plt.plot(knn_frac_vals,cos_dissim_vals)
 #     plt.show(block=False)
     plt.savefig("./figures/div_knn_frac")
-
+    
+    #redefine
+    MAPk_vals = np.zeros(NUM_VALS)
+    cos_dissim_vals = np.zeros(NUM_VALS)
     
     min_overlap_vals = [0, 0.05, 0.1,0.15,0.2]
     for i,min_overlap in enumerate(min_overlap_vals):
@@ -289,9 +292,11 @@ if __name__ == '__main__':
     plt.plot(min_overlap_vals,cos_dissim_vals)
 #     plt.show(block=False)
     plt.savefig("./figures/div_overlap")
-
     
-    k_vals = [10,50,100,150,200]
+    #redefine
+    MAPk_vals = np.zeros(NUM_VALS)
+    cos_dissim_vals = np.zeros(NUM_VALS)
+    k_vals = [10,50,100,500,1000]
     for i,k_val in enumerate(k_vals):
         model.k = k_val
         metrics = get_metrics(
@@ -310,12 +315,13 @@ if __name__ == '__main__':
     all_MAPk_vals.append(MAPk_vals)
     all_cos_dissim_vals.append(cos_dissim_vals)
     
+    
     print(MAPk_vals)
     plt.figure()
     plt.title("MAP@K for number of kNN neighbours")
     plt.xlabel("Number of kNN neighbours")
     plt.ylabel("MAP@K value")
-    plt.plot(min_overlap_vals,MAPk_vals)
+    plt.plot(k_vals,MAPk_vals)
 #     plt.show(block=False)
     plt.savefig("./figures/mapk_knn")
 
@@ -324,7 +330,7 @@ if __name__ == '__main__':
     plt.title("Cosine list dissimilarity for varying number of kNN neighbours")
     plt.xlabel("Number of kNN neighbours")
     plt.ylabel("List Dissimilarity")
-    plt.plot(min_overlap_vals,cos_dissim_vals)
+    plt.plot(k_vals,cos_dissim_vals)
 #     plt.show(block=False)
     plt.savefig("./figures/div_knn")
     
