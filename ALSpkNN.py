@@ -75,7 +75,7 @@ class ALSpkNN():
                          closest_user_song_sparse_indices):
 
         overlap_list = []
-        songs = self.user_df.loc[user_sparse_index]['song_ids']
+        songs = self.user_df.loc[user_sparse_index]['song_sparse_indices']
         for i in range(len(closest_user_song_sparse_indices)):
             overlap_list.append(
                 self.calculate_overlap(songs,
@@ -84,7 +84,8 @@ class ALSpkNN():
         return overlap_list
 
     # Returns list of song_sparse_indices
-    def get_knn_top_m_song_ids(self, user_sparse_index, m, min_overlap):
+    def get_knn_top_m_song_sparse_indices(self, user_sparse_index, m,
+                                          min_overlap):
 
         user_MUSIC = self.user_df.loc[user_sparse_index]['MUSIC']
         distances, indices = self.kdtree.query(user_MUSIC, self.k, p=1)
@@ -98,7 +99,7 @@ class ALSpkNN():
 
         overlap_list = self.get_overlap_list(user_sparse_index,
                                              closest_user_song_sparse_indices)
-        for i in range(len(closest_user_songs)):
+        for i in range(len(closest_user_song_sparse_indices)):
             if overlap_list[i] < min_overlap:
                 insufficient_overlap_indices.append(i)
         closest_user_song_sparse_indices = np.delete(
@@ -115,7 +116,9 @@ class ALSpkNN():
 
         user_songs = self.user_df.loc[user_sparse_index]['song_sparse_indices']
 
-        top_m_songs = set(top_m_songs) - set(user_songs)
+        # TODO: This does not guarantee that the user will get N songs
+        # Remove songs that the user has listened
+        top_m_song_sparse_indices = list(set(top_m_songs) - set(user_songs))
 
         return top_m_song_sparse_indices
 
@@ -130,11 +133,11 @@ class ALSpkNN():
             userid=user_sparse_index, user_items=train_plays_transpose, N=n)
         n_songs = [song_tuple[0] for song_tuple in n_song_tuples]
 
-        m_song_ids = self.get_knn_top_m_song_ids(
+        m_songs = self.get_knn_top_m_song_sparse_indices(
             user_sparse_index=user_sparse_index,
             m=m,
             min_overlap=self.min_overlap)
-        m_songs = self.song_df.loc[m_song_ids]['sparse_index'].tolist()
+        # m_songs = self.song_df.loc[m_song_ids]['sparse_index'].tolist()
 
         rec_list = n_songs + m_songs
         # utilities.concat_shuffle(n_songs, m_songs)
