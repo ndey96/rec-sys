@@ -54,7 +54,7 @@ class ALSpkNN():
         als_params = {
             'factors': 16,
             'dtype': np.float32,
-            'iterations': 2,
+            'iterations': 10,
             'calculate_training_loss': True
         }
         self.cf_model = AlternatingLeastSquares(**als_params)

@@ -10,6 +10,7 @@ from ALSpkNN import get_baseline_cf_model, weight_cf_matrix, ALSpkNN
 from functools import partial
 import os
 from sklearn import preprocessing
+import matplotlib.pyplot as plt
 
 # https://github.com/benfred/implicit/blob/master/implicit/evaluation.pyx
 
@@ -201,15 +202,132 @@ if __name__ == '__main__':
     ##################################################################
 
     print("Building model...")
-    model = ALSpkNN(user_df, song_df, k=100, knn_frac=0.5, cf_weighting_alpha=1)
+    NUM_VALS = 4
+    model = ALSpkNN(user_df, song_df, k=100, knn_frac=0.25, cf_weighting_alpha=1)
     print("Fitting model...")
     model.fit(train_plays)
-    metrics = get_metrics(
-        metrics=['MAP@K', 'mean_cosine_list_dissimilarity'],
-        N=20,
-        model=model,
-        train_user_items=train_plays.transpose(),
-        test_user_items=test_plays.transpose(),
-        song_df=song_df,
-        limit=10000)
-    print(metrics)
+    
+    all_MAPk_vals = []
+    all_cos_dissim_vals = []
+    limit_users = 999999
+    
+    MAPk_vals = np.zeros(NUM_VALS)
+    cos_dissim_vals = np.zeros(NUM_VALS)
+    
+    knn_frac_vals = [0.1,0.3,0.5,0.7,0.9]
+    for i,knn_frac_val in enumerate(knn_frac_vals):
+        model.knn_frac = knn_frac_val
+        metrics = get_metrics(
+            metrics=['MAP@K', 'mean_cosine_list_dissimilarity'],
+            N=20,
+            model=model,
+            train_user_items=train_plays.transpose(),
+            test_user_items=test_plays.transpose(),
+            song_df=song_df,
+            limit=limit_users)
+        MAPk_vals[i] = metrics["MAP@K"]
+        cos_dissim_vals[i] = metrics["mean_cosine_list_dissimilarity"]
+        print(metrics)
+    
+    #reset the model
+    model.knn_frac = 0.25
+    all_MAPk_vals.append(MAPk_vals)
+    all_cos_dissim_vals.append(cos_dissim_vals)
+    print(MAPk_vals)
+    plt.figure()
+    plt.title("MAP@K for varying MUSIC profile weight")
+    plt.xlabel("Fraction of songs determined by MUSIC profile")
+    plt.ylabel("MAP@K value")
+    plt.plot(knn_frac_vals,MAPk_vals)
+#     plt.show(block=False)
+    plt.savefig("./figures/mapk_knn_frac")
+    
+    print(cos_dissim_vals)
+    plt.figure()
+    plt.title("Cosine list dissimilarity for varying MUSIC profile weight")
+    plt.xlabel("Fraction of songs determined by MUSIC profile")
+    plt.ylabel("List Dissimilarity")
+    plt.plot(knn_frac_vals,cos_dissim_vals)
+#     plt.show(block=False)
+    plt.savefig("./figures/div_knn_frac")
+
+    
+    min_overlap_vals = [0, 0.05, 0.1,0.15,0.2]
+    for i,min_overlap in enumerate(min_overlap_vals):
+        model.min_overlap = min_overlap
+        metrics = get_metrics(
+            metrics=['MAP@K', 'mean_cosine_list_dissimilarity'],
+            N=20,
+            model=model,
+            train_user_items=train_plays.transpose(),
+            test_user_items=test_plays.transpose(),
+            song_df=song_df,
+            limit=limit_users)
+        MAPk_vals[i] = metrics["MAP@K"]
+        cos_dissim_vals[i] = metrics["mean_cosine_list_dissimilarity"]
+        print(metrics)
+        
+    model.min_overlap = 0.05
+    all_MAPk_vals.append(MAPk_vals)
+    all_cos_dissim_vals.append(cos_dissim_vals)
+    
+    print(MAPk_vals)
+    plt.figure()
+    plt.title("MAP@K for varying minimum MUSIC profile overlap")
+    plt.xlabel("Minimum MUSIC profile overlap")
+    plt.ylabel("MAP@K value")
+    plt.plot(min_overlap_vals,MAPk_vals)
+#     plt.show(block=False)
+    plt.savefig("./figures/mapk_overlap")
+
+    
+    print(cos_dissim_vals)
+    plt.figure()
+    plt.title("Cosine list dissimilarity for varying minimum MUSIC profile overlap")
+    plt.xlabel("Minimum MUSIC profile overlap")
+    plt.ylabel("List Dissimilarity")
+    plt.plot(min_overlap_vals,cos_dissim_vals)
+#     plt.show(block=False)
+    plt.savefig("./figures/div_overlap")
+
+    
+    k_vals = [10,50,100,150,200]
+    for i,k_val in enumerate(k_vals):
+        model.k = k_val
+        metrics = get_metrics(
+            metrics=['MAP@K', 'mean_cosine_list_dissimilarity'],
+            N=20,
+            model=model,
+            train_user_items=train_plays.transpose(),
+            test_user_items=test_plays.transpose(),
+            song_df=song_df,
+            limit=limit_users)
+        MAPk_vals[i] = metrics["MAP@K"]
+        cos_dissim_vals[i] = metrics["mean_cosine_list_dissimilarity"]
+        print(metrics)
+        
+    model.k = 100
+    all_MAPk_vals.append(MAPk_vals)
+    all_cos_dissim_vals.append(cos_dissim_vals)
+    
+    print(MAPk_vals)
+    plt.figure()
+    plt.title("MAP@K for number of kNN neighbours")
+    plt.xlabel("Number of kNN neighbours")
+    plt.ylabel("MAP@K value")
+    plt.plot(min_overlap_vals,MAPk_vals)
+#     plt.show(block=False)
+    plt.savefig("./figures/mapk_knn")
+
+    print(cos_dissim_vals)
+    plt.figure()
+    plt.title("Cosine list dissimilarity for varying number of kNN neighbours")
+    plt.xlabel("Number of kNN neighbours")
+    plt.ylabel("List Dissimilarity")
+    plt.plot(min_overlap_vals,cos_dissim_vals)
+#     plt.show(block=False)
+    plt.savefig("./figures/div_knn")
+    
+    np.save("./data/MAPk_vals",np.array(all_MAPk_vals))
+    np.save("./data/cos_dissim",np.array(all_cos_dissim_vals))
+

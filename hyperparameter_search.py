@@ -6,6 +6,7 @@ import numpy as np
 from scipy.sparse import load_npz
 from scipy.sparse import csr_matrix
 from implicit.als import AlternatingLeastSquares
+import matplotlib.pyplot as plt
 
 from implicit.evaluation import mean_average_precision_at_k
 
@@ -28,25 +29,27 @@ if load_data == True:
     test_plays = load_npz('data/test_sparse.npz')
 
     song_df = pd.read_hdf('data/song_df.h5', key='df')
-    song_df.set_index('song_id', inplace=True)
+#     song_df.set_index('song_id', inplace=True)
     
 with open('log.txt', 'w') as file:
     file.write('k, knn_frac, min_overlap, map_k, cosine\n')
 
+
 for i in range(len(k_vals)):
     for j in range(len(knn_frac_vals)):
         for k in range(len(min_overlap_vals)):
-            tuning_model = ALSpkNN(user_df, song_df, k_vals[i], 0, min_overlap_vals[k], cf_weighting_alpha=1)
+            print(song_df.shape)
+            tuning_model = ALSpkNN(user_df, song_df, k_vals[i], knn_frac_vals[j], min_overlap_vals[k], cf_weighting_alpha=1)
             print("Fitting model...")
             tuning_model.fit(train_plays)
             metrics = get_metrics(
-                metrics=['MAP@K', 'cosine_list_dissimilarity'],
+                metrics=['MAP@K', 'mean_cosine_list_dissimilarity'],
                 N=20,
                 model=tuning_model,
                 train_user_items=train_plays.transpose(),
                 test_user_items=test_plays.transpose(),
-                song_df_sparse_indexed=None,
-                limit=99999999)
+                song_df=song_df,
+                limit=10)
             
             mapk = metrics['MAP@K']
             cosdis = metrics['cosine_list_dissimilarity']
