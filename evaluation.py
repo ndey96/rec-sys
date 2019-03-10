@@ -184,7 +184,7 @@ def get_custom_diversity_metric(user_recs):
     artist_diversity = num_artists/20
     era_diversity = np.std(year_list)
     
-    diversity = genre_diversity*0.5 + artist_diversity*0.25 + era_diversity*0.05
+    diversity = genre_diversity*0.5 + artist_diversity*0.25 + era_diversity*0.005
     
     return diversity
 
