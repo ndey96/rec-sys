@@ -12,7 +12,7 @@ var topTrackIds = [String];
 var recommendedTrackIds = [String];
 var recommendedTrackUris = [String];
 
-export function authorize() {
+export function authorize(callback) {
       localStorage.removeItem(stateKey);
       const CLIENT_ID = '3f2b320cfc4f4af5a106fa21e6bc8d0c';
       const REDIRECT_URI = devBrowser;
