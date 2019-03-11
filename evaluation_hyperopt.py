@@ -45,7 +45,7 @@ embedding_cols = None
 
 def list_dissim_initializer(song_df_init, embedding_cols_init):
     global song_df
-    song_df_init = song_df_init
+    song_df = song_df_init
     global embedding_cols
     embedding_cols = embedding_cols_init
 
