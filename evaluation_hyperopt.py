@@ -176,13 +176,17 @@ def mean_average_precision_at_k(user_recs,
 
 def get_custom_diversity_metric(user_recs):
     
+#     num_genre_avg = 
+#     num_artist_avg = 
+#     year_std_avg = 
+    
 #     num_genres = 
 #     num_artists = 
 #     year_list = 
     
-    genre_diversity = num_genres/20
-    artist_diversity = num_artists/20
-    era_diversity = np.std(year_list)
+    genre_diversity = num_genres/num_genre_avg
+    artist_diversity = num_artists/num_artist_avg
+    era_diversity = np.std(year_list)/year_std_avg
     
     diversity = genre_diversity*0.5 + artist_diversity*0.25 + era_diversity*0.005
     
