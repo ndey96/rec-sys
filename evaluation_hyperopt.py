@@ -34,64 +34,6 @@ def recs_initializer(K_init, model_init, train_user_items_init):
 def get_user_recs_wrapper(user_index):
     return get_user_recs(user_index, K, model, train_user_items)
 
-def get_user_list_dissim(recommended_song_indices, song_df, embedding_cols):
-    song_vectors = song_df.loc[recommended_song_indices][embedding_cols].values
-    if len(song_vectors) == 1:
-        return 0
-    return np.mean(pdist(song_vectors, 'cosine'))
-
-song_df = None
-embedding_cols = None
-
-def list_dissim_initializer(song_df_init, embedding_cols_init):
-    global song_df
-    song_df = song_df_init
-    global embedding_cols
-    embedding_cols = embedding_cols_init
-
-def get_user_list_dissim_wrapper(recommended_song_indices):
-    return get_user_list_dissim(recommended_song_indices, song_df, embedding_cols)
-
-def get_cosine_list_dissimilarity(user_recs,
-                                  K,
-                                  limit,
-                                  song_df):
-    embedding_cols = [
-        # 'year',
-        'acousticness',
-        'danceability',
-        # 'duration_ms',
-        'energy',
-        'instrumentalness',
-        # 'key',
-        'liveness',
-        'loudness',
-        # 'mode',
-        'speechiness',
-        'tempo',
-        # 'time_signature',
-        'valence'
-    ]
-
-    song_df[embedding_cols] = preprocessing.MinMaxScaler().fit_transform(song_df[embedding_cols])
-    with Pool(os.cpu_count(), list_dissim_initializer, (song_df, embedding_cols)) as dissim_pool:
-        list_dissims = dissim_pool.map(
-            func=get_user_list_dissim_wrapper,
-            iterable=user_recs[:limit],
-            chunksize=625
-        )
-    return np.mean(list_dissims)
-    # for recommended_song_indices in user_recs[:limit]:
-    #     # song_vectors -> n x m matrix, where m is the number of audio features in the embedding_cols
-    #     song_vectors = song_df.loc[recommended_song_indices][embedding_cols].values
-    #     if len(song_vectors) == 1:
-    #         continue
-    #     list_dissim_sum += np.mean(pdist(song_vectors, 'cosine'))
-
-    # return list_dissim_sum/len(user_recs)
-
-
-
 # eg: metrics = ['MAP@K', 'mean_cosine_list_dissimilarity']
 # N = number of recommendations per user
 def get_metrics(
@@ -136,7 +78,7 @@ def get_metrics(
     calculated_metrics = {}
     if 'MAP@K' in metrics:
         start = time.time()
-        map_at_k = mean_average_precision_at_k(
+        map_at_k = get_mean_average_precision_at_k(
             user_recs=user_recs,
             user_to_listened_songs_map=user_to_listened_songs_map,
             K=N,
@@ -146,19 +88,84 @@ def get_metrics(
 
     if 'mean_cosine_list_dissimilarity' in metrics:
         start = time.time()
-        cos_dis = get_cosine_list_dissimilarity(user_recs=user_recs,
+        cos_dis = get_mean_cosine_list_dissimilarity(user_recs=user_recs,
                                                 K=K,
                                                 limit=limit,
                                                 song_df=song_df)
         calculated_metrics['mean_cosine_list_dissimilarity'] = cos_dis
         print(f'mean_cosine_list_dissimilarity calculation time: {time.time() - start}s')
 
+    if 'metadata_diversity' in metrics:
+        start = time.time()
+        metadata_diversity = get_metadata_diversity(user_recs=user_recs,
+                                                    K=K,
+                                                    limit=limit,
+                                                    song_df=song_df)
+        calculated_metrics['metadata_diversity'] = metadata_diversity
+        print(f'metadata_diversity calculation time: {time.time() - start}s')
+
     return calculated_metrics
 
-def mean_average_precision_at_k(user_recs,
-                                user_to_listened_songs_map,
-                                K,
-                                limit):
+def get_user_list_dissim(recommended_song_indices, song_df, embedding_cols):
+    song_vectors = song_df.loc[recommended_song_indices][embedding_cols].values
+    if len(song_vectors) == 1:
+        return 0
+    return np.mean(pdist(song_vectors, 'cosine'))
+
+song_df = None
+embedding_cols = None
+
+def list_dissim_initializer(song_df_init, embedding_cols_init):
+    global song_df
+    song_df = song_df_init
+    global embedding_cols
+    embedding_cols = embedding_cols_init
+
+def get_user_list_dissim_wrapper(recommended_song_indices):
+    return get_user_list_dissim(recommended_song_indices, song_df, embedding_cols)
+
+def get_mean_cosine_list_dissimilarity(user_recs,
+                                       K,
+                                       limit,
+                                       song_df):
+    embedding_cols = [
+        # 'year',
+        'acousticness',
+        'danceability',
+        # 'duration_ms',
+        'energy',
+        'instrumentalness',
+        # 'key',
+        'liveness',
+        'loudness',
+        # 'mode',
+        'speechiness',
+        'tempo',
+        # 'time_signature',
+        'valence'
+    ]
+
+    song_df[embedding_cols] = preprocessing.MinMaxScaler().fit_transform(song_df[embedding_cols])
+    with Pool(os.cpu_count(), list_dissim_initializer, (song_df, embedding_cols)) as dissim_pool:
+        list_dissims = dissim_pool.map(
+            func=get_user_list_dissim_wrapper,
+            iterable=user_recs[:limit],
+            chunksize=625
+        )
+    return np.mean(list_dissims)
+    # for recommended_song_indices in user_recs[:limit]:
+    #     # song_vectors -> n x m matrix, where m is the number of audio features in the embedding_cols
+    #     song_vectors = song_df.loc[recommended_song_indices][embedding_cols].values
+    #     if len(song_vectors) == 1:
+    #         continue
+    #     list_dissim_sum += np.mean(pdist(song_vectors, 'cosine'))
+
+    # return list_dissim_sum/len(user_recs)
+
+def get_mean_average_precision_at_k(user_recs,
+                                    user_to_listened_songs_map,
+                                    K,
+                                    limit):
 
     average_precision_sum = 0
     for i, user_index in enumerate(list(user_to_listened_songs_map.keys())[:limit]):
@@ -174,23 +181,22 @@ def mean_average_precision_at_k(user_recs,
     
     return average_precision_sum / len(user_to_listened_songs_map)
 
-def get_custom_diversity_metric(user_recs):
+def get_metadata_diversity(user_recs, song_df, limit):
     
-#     num_genre_avg = 
-#     num_artist_avg = 
-#     year_std_avg = 
+    #TODO: Fill these in (COle)
+    num_genre_avg = 1 
+    num_artist_avg = 1
+    year_std_avg = 1
     
-#     num_genres = 
-#     num_artists = 
-#     year_list = 
+    user_diversity_sum = 0
+    for recommended_song_indices in user_recs[:limit]:
+        sub_df = song_df.loc[recommended_song_indices]
+        genre_diversity = sub_df['genre'].nunique() / num_genre_avg
+        artist_diversity = sub_df['artist_name'].nunique() / num_artist_avg
+        era_diversity = sub_df['year'].std() / year_std_avg # need to filter year=0 out
+        user_diversity_sum += genre_diversity + artist_diversity + era_diversity
     
-    genre_diversity = num_genres/num_genre_avg
-    artist_diversity = num_artists/num_artist_avg
-    era_diversity = np.std(year_list)/year_std_avg
-    
-    diversity = genre_diversity*0.5 + artist_diversity*0.25 + era_diversity*0.005
-    
-    return diversity
+    return user_diversity_sum / len(user_recs)
 
 if __name__ == '__main__':
 
