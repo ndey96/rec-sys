@@ -33,7 +33,7 @@ if __name__ == '__main__':
     }
 
     default_vals = {
-        'k': 100,
+        'k': 200,
         'max_overlap': 0.1,
         'knn_frac': 0.5,
         'min_songs': 5,
@@ -70,6 +70,7 @@ if __name__ == '__main__':
             results[:, i] = list(metrics.values())
             print(f'Evaluating model took {time.time()-start}s')
 
+        np.save(f'figures_91k_N_20/results_{hparam_name}', results)
         for i in range(len(metrics_to_get)):
             metric_name = metrics_to_get[i]
             plt.figure()
@@ -78,5 +79,4 @@ if __name__ == '__main__':
             plt.ylabel(metric_name)
             plt.xlabel(hparam_name + ' values')
             plt.tight_layout()
-            plt.savefig(f'figures_10k_N_20/{hparam_name}_{metric_name}')
-            np.save(f'figures_91k_N_20/results_{hparam_name}', results)
+            plt.savefig(f'figures_91k_N_20/{hparam_name}_{metric_name}')

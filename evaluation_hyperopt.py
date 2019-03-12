@@ -19,8 +19,6 @@ K = None
 model = None
 train_user_items = None
 
-N = 20
-
 def recs_initializer(K_init, model_init, train_user_items_init):
     global K
     K = K_init
@@ -175,7 +173,7 @@ def get_user_meta_div(recommended_song_indices, song_df):
 
 def get_mean_metadata_diversity(user_recs, song_df, limit):
     
-    scaling_factor = 20 / N
+    scaling_factor = 20 / len(user_recs[0])
     
     with Pool(os.cpu_count(), meta_div_initializer, (song_df,)) as meta_div_pool:
         meta_divs = meta_div_pool.map(
@@ -183,15 +181,6 @@ def get_mean_metadata_diversity(user_recs, song_df, limit):
             iterable=user_recs[:limit],
             chunksize=625
         )
-
-    # user_diversity_sum = 0
-    # for recommended_song_indices in user_recs[:limit]:
-    #     sub_df = song_df.loc[recommended_song_indices]
-    #     genre_diversity = sub_df['genre'].nunique() / num_genre_avg
-    #     artist_diversity = sub_df['artist_name'].nunique() / num_artist_avg
-    #     era_diversity = (sub_df['year'].where(sub_df['year'] > 0)).std() / year_std_avg
-        
-    #     user_diversity_sum += genre_diversity + artist_diversity + era_diversity
     
     return scaling_factor * np.mean(meta_divs)
 
@@ -223,20 +212,20 @@ if __name__ == '__main__':
 
     ##################################################################
 
-    # print("Building and fitting the baseline CF model")
-    # baseline_cf_model = get_baseline_cf_model()
-    # # weighted_train_csr = weight_cf_matrix(train_plays, alpha=1)
-    # baseline_cf_model.fit(train_plays)
+    print("Building and fitting the baseline CF model")
+    baseline_cf_model = get_baseline_cf_model()
+    weighted_train_csr = weight_cf_matrix(train_plays, alpha=1)
+    baseline_cf_model.fit(weighted_train_csr)
 
-    # print("Evaluating the baseline CF model")
-    # metrics = get_metrics(
-    #     metrics=['MAP@K', 'mean_cosine_list_dissimilarity'],
-    #     N=20,
-    #     model=baseline_cf_model,
-    #     train_user_items=train_plays.transpose(),
-    #     test_user_items=test_plays.transpose(),
-    #     song_df=song_df,
-    #     limit=10000)
-    # print(metrics)
+    print("Evaluating the baseline CF model")
+    metrics = get_metrics(
+        metrics=['MAP@K', 'mean_cosine_list_dissimilarity', 'metadata_diversity'],
+        N=20,
+        model=baseline_cf_model,
+        train_user_items=train_plays.transpose(),
+        test_user_items=test_plays.transpose(),
+        song_df=song_df,
+        limit=10000)
+    print(metrics)
 
     ##################################################################

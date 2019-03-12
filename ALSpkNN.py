@@ -155,16 +155,19 @@ class ALSpkNN():
         # n -> number of songs from CF recs
         n = N - m
 
-        n_song_tuples = self.cf_model.recommend(
-            userid=user_sparse_index, user_items=train_plays_transpose, N=n)
-        n_songs = [song_tuple[0] for song_tuple in n_song_tuples]
+        n_songs = []
+        if n > 0:
+            n_song_tuples = self.cf_model.recommend(
+                userid=user_sparse_index, user_items=train_plays_transpose, N=n)
+            n_songs = [song_tuple[0] for song_tuple in n_song_tuples]
 
-        m_songs = self.get_knn_top_m_song_sparse_indices(
-            user_sparse_index=user_sparse_index,
-            m=m,
-            max_overlap=self.max_overlap,
-            songs_from_cf=n_songs)
-        # m_songs = self.song_df.loc[m_song_ids]['sparse_index'].tolist()
+        m_songs = []
+        if m > 0:
+            m_songs = self.get_knn_top_m_song_sparse_indices(
+                user_sparse_index=user_sparse_index,
+                m=m,
+                max_overlap=self.max_overlap,
+                songs_from_cf=n_songs)
 
         rec_list = n_songs + m_songs
         # utilities.concat_shuffle(n_songs, m_songs)
