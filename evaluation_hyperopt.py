@@ -97,8 +97,7 @@ def get_metrics(
 
     if 'metadata_diversity' in metrics:
         start = time.time()
-        metadata_diversity = get_metadata_diversity(user_recs=user_recs,
-                                                    K=K,
+        metadata_diversity = get_mean_metadata_diversity(user_recs=user_recs,
                                                     limit=limit,
                                                     song_df=song_df)
         calculated_metrics['metadata_diversity'] = metadata_diversity
@@ -181,19 +180,19 @@ def get_mean_average_precision_at_k(user_recs,
     
     return average_precision_sum / len(user_to_listened_songs_map)
 
-def get_metadata_diversity(user_recs, song_df, limit):
+def get_mean_metadata_diversity(user_recs, song_df, limit):
     
-    #TODO: Fill these in (COle)
-    num_genre_avg = 1 
-    num_artist_avg = 1
-    year_std_avg = 1
+    num_genre_avg = 2.4 
+    num_artist_avg = 16.2
+    year_std_avg = 5.5
     
     user_diversity_sum = 0
     for recommended_song_indices in user_recs[:limit]:
         sub_df = song_df.loc[recommended_song_indices]
         genre_diversity = sub_df['genre'].nunique() / num_genre_avg
         artist_diversity = sub_df['artist_name'].nunique() / num_artist_avg
-        era_diversity = sub_df['year'].std() / year_std_avg # need to filter year=0 out
+        era_diversity = (sub_df['year'].where(sub_df['year'] > 0)).std() / year_std_avg
+        
         user_diversity_sum += genre_diversity + artist_diversity + era_diversity
     
     return user_diversity_sum / len(user_recs)
@@ -227,7 +226,7 @@ if __name__ == '__main__':
 
     print("Building model...")
     NUM_VALS = 5
-    model = ALSpkNN(user_df, song_df, k=100, knn_frac=0.25, cf_weighting_alpha=1, min_overlap=0.05)
+    model = ALSpkNN(user_df, song_df, k=100, knn_frac=0.25, cf_weighting_alpha=1, max_overlap=0.05)
     print("Fitting model...")
     model.fit(train_plays)
     
@@ -242,7 +241,7 @@ if __name__ == '__main__':
     for i,knn_frac_val in enumerate(knn_frac_vals):
         model.knn_frac = knn_frac_val
         metrics = get_metrics(
-            metrics=['MAP@K', 'mean_cosine_list_dissimilarity'],
+            metrics=['MAP@K', 'mean_cosine_list_dissimilarity', 'metadata_diversity'],
             N=20,
             model=model,
             train_user_items=train_plays.transpose(),
