@@ -5,7 +5,7 @@ Created on Mon Mar 11 20:44:32 2019
 @author: Matthew
 """
 import matplotlib.pyplot as plt
-from evaluation import get_metrics
+from evaluation_hyperopt import get_metrics
 import pandas as pd
 from scipy.sparse import load_npz
 from ALSpkNN import ALSpkNN
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     default_vals['max_overlap'] = default_overlap
     default_vals['knn_frac'] = default_knn_frac
     
-    metrics_to_get = ['MAP@K', 'mean_cosine_list_dissimilarity']
+    metrics_to_get = ['MAP@K', 'mean_cosine_list_dissimilarity',"metadata_diversity"]
     
     xlabels = ['']
     
@@ -88,6 +88,7 @@ if __name__ == '__main__':
         
         for i in range(len(metrics_to_get)):
             plt.figure()
+            plt.title("Effect of varying " + param_name + " parameter")
             plt.plot(varied_parameters[param_name],results[i,:])
             plt.ylabel(metrics_to_get[i])
             plt.xlabel(param_name + " values")    
