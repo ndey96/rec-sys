@@ -23,6 +23,8 @@ K = None
 model = None
 train_user_items = None
 
+N = 20
+
 def recs_initializer(K_init, model_init, train_user_items_init):
     global K
     K = K_init
@@ -182,6 +184,9 @@ def get_mean_average_precision_at_k(user_recs,
 
 def get_mean_metadata_diversity(user_recs, song_df, limit):
     
+    scaling_factor = 20 / N
+    
+    # calculated using 10k users
     num_genre_avg = 2.4 
     num_artist_avg = 16.2
     year_std_avg = 5.5
@@ -195,7 +200,7 @@ def get_mean_metadata_diversity(user_recs, song_df, limit):
         
         user_diversity_sum += genre_diversity + artist_diversity + era_diversity
     
-    return user_diversity_sum / len(user_recs)
+    return user_diversity_sum * scaling_factor / len(user_recs)
 
 if __name__ == '__main__':
 
@@ -232,7 +237,7 @@ if __name__ == '__main__':
     
     all_MAPk_vals = []
     all_cos_dissim_vals = []
-    limit_users = 5000
+    limit_users = 91000
     
     MAPk_vals = np.zeros(NUM_VALS)
     cos_dissim_vals = np.zeros(NUM_VALS)
@@ -242,7 +247,7 @@ if __name__ == '__main__':
         model.knn_frac = knn_frac_val
         metrics = get_metrics(
             metrics=['MAP@K', 'mean_cosine_list_dissimilarity', 'metadata_diversity'],
-            N=20,
+            N=N,
             model=model,
             train_user_items=train_plays.transpose(),
             test_user_items=test_plays.transpose(),
@@ -283,7 +288,7 @@ if __name__ == '__main__':
         model.min_overlap = min_overlap
         metrics = get_metrics(
             metrics=['MAP@K', 'mean_cosine_list_dissimilarity'],
-            N=20,
+            N=N,
             model=model,
             train_user_items=train_plays.transpose(),
             test_user_items=test_plays.transpose(),
@@ -324,7 +329,7 @@ if __name__ == '__main__':
         model.k = k_val
         metrics = get_metrics(
             metrics=['MAP@K', 'mean_cosine_list_dissimilarity'],
-            N=20,
+            N=N,
             model=model,
             train_user_items=train_plays.transpose(),
             test_user_items=test_plays.transpose(),
