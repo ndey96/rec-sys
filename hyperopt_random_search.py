@@ -47,7 +47,7 @@ if __name__ == '__main__':
     ##################################################################
 
 
-    limit_users = 10
+    limit_users = 10000
     
     with open('data/random_search_log.txt', 'w') as file:
         file.write('k, knn_frac, max_overlap, map_k, cosine, metadata\n')
@@ -65,7 +65,7 @@ if __name__ == '__main__':
         print("Fitting model...")
         model.fit(train_plays)
         
-        print(f'Evaluating ALSpkNN with k={model.k}, knn_frac={model.knn_frac}, max_overlap={model.max_overlap}')
+        print(f'Evaluating ALSpkNN with k={model.k}, knn_frac={model.knn_frac}, max_overlap={model.max_overlap}, min_songs={model.min_songs}')
 
         metrics = evaluation_hyperopt.get_metrics(
             metrics=['MAP@K', 'mean_cosine_list_dissimilarity', 'metadata_diversity'],
