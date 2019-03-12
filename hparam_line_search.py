@@ -26,10 +26,10 @@ if __name__ == '__main__':
 
     #order of placement in dictionary matters
     hparam_vals_map = {
-        'k': [50, 100, 200, 500],
-        'max_overlap': [0.05, 0.1, 0.15, 0.2],
-        'knn_frac': [0, 0.25, 0.5, 1],
-        'min_songs': [1, 5, 10, 15],
+        'k': [50, 100, 250, 500, 1000],
+        # 'max_overlap': [0.05, 0.1, 0.15, 0.2],
+        'knn_frac': [0, 0.25, 0.5, 0.75, 1],
+        # 'min_songs': [1, 5, 10, 15],
     }
 
     default_vals = {
@@ -45,13 +45,13 @@ if __name__ == '__main__':
     ]
 
 
-    USER_LIMIT = 10000
+    USER_LIMIT = 9999999
     for hparam_name, hparam_vals in hparam_vals_map.items():
         print(f'\n\nStarting {hparam_name} line search...')
-        start = time.time()
         results = np.zeros((len(metrics_to_get), len(hparam_vals)))
 
         for i, val in enumerate(hparam_vals):
+            start = time.time()
             model_params = {**default_vals, hparam_name: val}
             print(f'Building model with {model_params}')
             model = ALSpkNN(user_df, song_df, **model_params)
@@ -68,6 +68,7 @@ if __name__ == '__main__':
                 limit=USER_LIMIT)
             print(metrics)
             results[:, i] = list(metrics.values())
+            print(f'Evaluating model took {time.time()-start}s')
 
         for i in range(len(metrics_to_get)):
             metric_name = metrics_to_get[i]
@@ -78,6 +79,4 @@ if __name__ == '__main__':
             plt.xlabel(hparam_name + ' values')
             plt.tight_layout()
             plt.savefig(f'figures_10k_N_20/{hparam_name}_{metric_name}')
-            np.save(f'figures_10k_N_20/results_{hparam_name}', results)
-
-        print(f'{hparam_name} line search took {time.time()-start}s')
+            np.save(f'figures_91k_N_20/results_{hparam_name}', results)
