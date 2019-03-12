@@ -9,10 +9,24 @@
 .App-header {
   background-color: #B8DDDE;
   color: #414141;
-  font-size: 36px;
-  min-height: 100vh;
+  font-size: 24px;
+  min-height: 75vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+
+.Button-header {
+  color: #F0FCFC;
+  background-color: #52bfa0;
+  font-size: 24px;
+  min-width: 140px;
+  top: 1000px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  -webkit-appearance: none;
+  border: 0;
 }
