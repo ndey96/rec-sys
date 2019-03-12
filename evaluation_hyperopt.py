@@ -12,10 +12,6 @@ import os
 from sklearn import preprocessing
 import matplotlib.pyplot as plt
 
-# https://github.com/benfred/implicit/blob/master/implicit/evaluation.pyx
-
-# http://sdsawtelle.github.io/blog/output/mean-average-precision-MAP-for-recommender-systems.html
-
 def get_user_recs(user_index, K, model, train_user_items):
     return model.recommend(user_index, train_user_items, N=K)
 
@@ -154,20 +150,56 @@ def get_mean_cosine_list_dissimilarity(user_recs,
             chunksize=625
         )
     return np.mean(list_dissims)
-    # for recommended_song_indices in user_recs[:limit]:
-    #     # song_vectors -> n x m matrix, where m is the number of audio features in the embedding_cols
-    #     song_vectors = song_df.loc[recommended_song_indices][embedding_cols].values
-    #     if len(song_vectors) == 1:
-    #         continue
-    #     list_dissim_sum += np.mean(pdist(song_vectors, 'cosine'))
 
-    # return list_dissim_sum/len(user_recs)
+song_df = None
+
+def meta_div_initializer(song_df_init):
+    global song_df
+    song_df = song_df_init
+
+def get_user_meta_div_wrapper(recommended_song_indices):
+    return get_user_meta_div(recommended_song_indices, song_df)
+
+def get_user_meta_div(recommended_song_indices, song_df):
+    # calculated using 10k users
+    num_genre_avg = 2.4 
+    num_artist_avg = 16.2
+    year_std_avg = 5.5
+
+    sub_df = song_df.loc[recommended_song_indices]
+    genre_diversity = sub_df['genre'].nunique() / num_genre_avg
+    artist_diversity = sub_df['artist_name'].nunique() / num_artist_avg
+    era_diversity = (sub_df['year'].where(sub_df['year'] > 0)).std() / year_std_avg
+    
+    return genre_diversity + artist_diversity + era_diversity
+
+def get_mean_metadata_diversity(user_recs, song_df, limit):
+    
+    scaling_factor = 20 / N
+    
+    with Pool(os.cpu_count(), meta_div_initializer, (song_df)) as meta_div_pool:
+        meta_divs = meta_div_pool.map(
+            func=get_user_meta_div_wrapper,
+            iterable=user_recs[:limit],
+            chunksize=625
+        )
+
+    # user_diversity_sum = 0
+    # for recommended_song_indices in user_recs[:limit]:
+    #     sub_df = song_df.loc[recommended_song_indices]
+    #     genre_diversity = sub_df['genre'].nunique() / num_genre_avg
+    #     artist_diversity = sub_df['artist_name'].nunique() / num_artist_avg
+    #     era_diversity = (sub_df['year'].where(sub_df['year'] > 0)).std() / year_std_avg
+        
+    #     user_diversity_sum += genre_diversity + artist_diversity + era_diversity
+    
+    return scaling_factor * np.mean(meta_divs)
 
 def get_mean_average_precision_at_k(user_recs,
                                     user_to_listened_songs_map,
                                     K,
                                     limit):
-
+    # http://sdsawtelle.github.io/blog/output/mean-average-precision-MAP-for-recommender-systems.html
     average_precision_sum = 0
     for i, user_index in enumerate(list(user_to_listened_songs_map.keys())[:limit]):
         listened_song_indices = user_to_listened_songs_map[user_index]
@@ -181,26 +213,6 @@ def get_mean_average_precision_at_k(user_recs,
         average_precision_sum += precision_sum / min(K, len(listened_song_indices))
     
     return average_precision_sum / len(user_to_listened_songs_map)
-
-def get_mean_metadata_diversity(user_recs, song_df, limit):
-    
-    scaling_factor = 20 / N
-    
-    # calculated using 10k users
-    num_genre_avg = 2.4 
-    num_artist_avg = 16.2
-    year_std_avg = 5.5
-    
-    user_diversity_sum = 0
-    for recommended_song_indices in user_recs[:limit]:
-        sub_df = song_df.loc[recommended_song_indices]
-        genre_diversity = sub_df['genre'].nunique() / num_genre_avg
-        artist_diversity = sub_df['artist_name'].nunique() / num_artist_avg
-        era_diversity = (sub_df['year'].where(sub_df['year'] > 0)).std() / year_std_avg
-        
-        user_diversity_sum += genre_diversity + artist_diversity + era_diversity
-    
-    return user_diversity_sum * scaling_factor / len(user_recs)
 
 if __name__ == '__main__':
 

@@ -13,6 +13,7 @@ import sys
 import random
 sys.setrecursionlimit(10000)
 
+
 def get_baseline_cf_model():
     als_params = {
         'factors': 16,
@@ -33,8 +34,10 @@ def weight_cf_matrix(csr_mat, alpha):
 
 class ALSpkNN():
     '''
-    knn_frac = % of KNN recommendations
     k = # of neighbours for KNN
+    knn_frac = % of KNN recommendations
+    max_overlap = maximum % overlap between user and their MUSIC neighbours
+    min_songs = only use users with > min_songs in our KNN code
     '''
 
     def __init__(self,
@@ -53,8 +56,8 @@ class ALSpkNN():
         self.k = k
         self.max_overlap = max_overlap
         self.min_songs = min_songs
-        
-        user_df_subset = user_df.loc[user_df['num_songs'] > (min_songs-1)]
+
+        user_df_subset = user_df.loc[user_df['num_songs'] > (min_songs - 1)]
         self.kdtree = KDTree(user_df_subset['MUSIC'].tolist())
 
         #build the collaborative filtering model with params hardcoded
@@ -92,7 +95,7 @@ class ALSpkNN():
 
     # Returns list of song_sparse_indices
     def get_knn_top_m_song_sparse_indices(self, user_sparse_index, m,
-                                          max_overlap,songs_from_cf):
+                                          max_overlap, songs_from_cf):
 
         user_MUSIC = self.user_df.loc[user_sparse_index]['MUSIC']
         distances, indices = self.kdtree.query(user_MUSIC, self.k, p=1)
@@ -109,33 +112,38 @@ class ALSpkNN():
         for i in range(len(closest_user_song_sparse_indices)):
             if overlap_list[i] > max_overlap:
                 insufficient_overlap_indices.append(i)
-        
-        #Users with only one or two songs in their listening history will almost 
-        # always exceed the overlap condition. This if statement checks if we 
+
+        #Users with only one or two songs in their listening history will almost
+        # always exceed the overlap condition. This if statement checks if we
         # are clearing too many users. 5 was chosen as an arbitrary threshold
-        if len(insufficient_overlap_indices)+5 < len(closest_user_song_sparse_indices):
+        if len(insufficient_overlap_indices) + 5 < len(
+                closest_user_song_sparse_indices):
             closest_user_song_sparse_indices = np.delete(
-                    closest_user_song_sparse_indices, insufficient_overlap_indices)
+                closest_user_song_sparse_indices, insufficient_overlap_indices)
         else:
             #Backup incase closest neighbours are all too similar to the user
             #Choose random MUSIC users since similarity of MUSIC scores has
             #became meaningless.
-            random_sparse_user_indices = random.sample(list(self.user_df.index),m)
-            closest_user_song_sparse_indices = self.user_df.loc[random_sparse_user_indices][
-            'song_sparse_indices'].values
-            
-            print("Choosing random users since not enough users have small enough overlap")
-            
+            random_sparse_user_indices = random.sample(
+                list(self.user_df.index), m)
+            closest_user_song_sparse_indices = self.user_df.loc[
+                random_sparse_user_indices]['song_sparse_indices'].values
+
+            print(
+                "Choosing random users since not enough users have small enough overlap"
+            )
+
         user_songs = self.user_df.loc[user_sparse_index]['song_sparse_indices']
-        
+
         # closest_user_song_sparse_indices_flat -> list of song_ids
-        closest_user_song_sparse_indices_flat = itertools.chain.from_iterable(closest_user_song_sparse_indices)
+        closest_user_song_sparse_indices_flat = itertools.chain.from_iterable(
+            closest_user_song_sparse_indices)
 
         filtered_songs = []
         for song in closest_user_song_sparse_indices_flat:
             if song not in (user_songs + songs_from_cf):
                 filtered_songs.append(song)
-        
+
         top_m_songs = [i[0] for i in Counter(filtered_songs).most_common(m)]
 
         return top_m_songs
@@ -155,7 +163,7 @@ class ALSpkNN():
             user_sparse_index=user_sparse_index,
             m=m,
             max_overlap=self.max_overlap,
-            songs_from_cf = n_songs)
+            songs_from_cf=n_songs)
         # m_songs = self.song_df.loc[m_song_ids]['sparse_index'].tolist()
 
         rec_list = n_songs + m_songs
