@@ -12,10 +12,6 @@ import os
 from sklearn import preprocessing
 import matplotlib.pyplot as plt
 
-# https://github.com/benfred/implicit/blob/master/implicit/evaluation.pyx
-
-# http://sdsawtelle.github.io/blog/output/mean-average-precision-MAP-for-recommender-systems.html
-
 def get_user_recs(user_index, K, model, train_user_items):
     return model.recommend(user_index, train_user_items, N=K)
 
@@ -97,8 +93,7 @@ def get_metrics(
 
     if 'metadata_diversity' in metrics:
         start = time.time()
-        metadata_diversity = get_metadata_diversity(user_recs=user_recs,
-                                                    K=K,
+        metadata_diversity = get_mean_metadata_diversity(user_recs=user_recs,
                                                     limit=limit,
                                                     song_df=song_df)
         calculated_metrics['metadata_diversity'] = metadata_diversity
@@ -153,20 +148,47 @@ def get_mean_cosine_list_dissimilarity(user_recs,
             chunksize=625
         )
     return np.mean(list_dissims)
-    # for recommended_song_indices in user_recs[:limit]:
-    #     # song_vectors -> n x m matrix, where m is the number of audio features in the embedding_cols
-    #     song_vectors = song_df.loc[recommended_song_indices][embedding_cols].values
-    #     if len(song_vectors) == 1:
-    #         continue
-    #     list_dissim_sum += np.mean(pdist(song_vectors, 'cosine'))
 
-    # return list_dissim_sum/len(user_recs)
+song_df = None
+
+def meta_div_initializer(song_df_init):
+    global song_df
+    song_df = song_df_init
+
+def get_user_meta_div_wrapper(recommended_song_indices):
+    return get_user_meta_div(recommended_song_indices, song_df)
+
+def get_user_meta_div(recommended_song_indices, song_df):
+    # calculated using 10k users
+    num_genre_avg = 2.4 
+    num_artist_avg = 16.2
+    year_std_avg = 5.5
+
+    sub_df = song_df.loc[recommended_song_indices]
+    genre_diversity = sub_df['genre'].nunique() / num_genre_avg
+    artist_diversity = sub_df['artist_name'].nunique() / num_artist_avg
+    era_diversity = (sub_df['year'].where(sub_df['year'] > 0)).std() / year_std_avg
+    
+    return genre_diversity + artist_diversity + era_diversity
+
+def get_mean_metadata_diversity(user_recs, song_df, limit):
+    
+    scaling_factor = 20 / len(user_recs[0])
+    
+    with Pool(os.cpu_count(), meta_div_initializer, (song_df,)) as meta_div_pool:
+        meta_divs = meta_div_pool.map(
+            func=get_user_meta_div_wrapper,
+            iterable=user_recs[:limit],
+            chunksize=625
+        )
+    
+    return scaling_factor * np.mean(meta_divs)
 
 def get_mean_average_precision_at_k(user_recs,
                                     user_to_listened_songs_map,
                                     K,
                                     limit):
-
+    # http://sdsawtelle.github.io/blog/output/mean-average-precision-MAP-for-recommender-systems.html
     average_precision_sum = 0
     for i, user_index in enumerate(list(user_to_listened_songs_map.keys())[:limit]):
         listened_song_indices = user_to_listened_songs_map[user_index]
@@ -181,23 +203,6 @@ def get_mean_average_precision_at_k(user_recs,
     
     return average_precision_sum / len(user_to_listened_songs_map)
 
-def get_metadata_diversity(user_recs, song_df, limit):
-    
-    #TODO: Fill these in (COle)
-    num_genre_avg = 1 
-    num_artist_avg = 1
-    year_std_avg = 1
-    
-    user_diversity_sum = 0
-    for recommended_song_indices in user_recs[:limit]:
-        sub_df = song_df.loc[recommended_song_indices]
-        genre_diversity = sub_df['genre'].nunique() / num_genre_avg
-        artist_diversity = sub_df['artist_name'].nunique() / num_artist_avg
-        era_diversity = sub_df['year'].std() / year_std_avg # need to filter year=0 out
-        user_diversity_sum += genre_diversity + artist_diversity + era_diversity
-    
-    return user_diversity_sum / len(user_recs)
-
 if __name__ == '__main__':
 
     train_plays = load_npz('data/train_sparse.npz')
@@ -207,157 +212,20 @@ if __name__ == '__main__':
 
     ##################################################################
 
-    # print("Building and fitting the baseline CF model")
-    # baseline_cf_model = get_baseline_cf_model()
-    # # weighted_train_csr = weight_cf_matrix(train_plays, alpha=1)
-    # baseline_cf_model.fit(train_plays)
+    print("Building and fitting the baseline CF model")
+    baseline_cf_model = get_baseline_cf_model()
+    weighted_train_csr = weight_cf_matrix(train_plays, alpha=1)
+    baseline_cf_model.fit(weighted_train_csr)
 
-    # print("Evaluating the baseline CF model")
-    # metrics = get_metrics(
-    #     metrics=['MAP@K', 'mean_cosine_list_dissimilarity'],
-    #     N=20,
-    #     model=baseline_cf_model,
-    #     train_user_items=train_plays.transpose(),
-    #     test_user_items=test_plays.transpose(),
-    #     song_df=song_df,
-    #     limit=10000)
-    # print(metrics)
+    print("Evaluating the baseline CF model")
+    metrics = get_metrics(
+        metrics=['MAP@K', 'mean_cosine_list_dissimilarity', 'metadata_diversity'],
+        N=20,
+        model=baseline_cf_model,
+        train_user_items=train_plays.transpose(),
+        test_user_items=test_plays.transpose(),
+        song_df=song_df,
+        limit=10000)
+    print(metrics)
 
     ##################################################################
-
-    print("Building model...")
-    NUM_VALS = 5
-    model = ALSpkNN(user_df, song_df, k=100, knn_frac=0.25, cf_weighting_alpha=1, min_overlap=0.05)
-    print("Fitting model...")
-    model.fit(train_plays)
-    
-    all_MAPk_vals = []
-    all_cos_dissim_vals = []
-    limit_users = 5000
-    
-    MAPk_vals = np.zeros(NUM_VALS)
-    cos_dissim_vals = np.zeros(NUM_VALS)
-    
-    knn_frac_vals = [0.1,0.3,0.5,0.7,0.9]
-    for i,knn_frac_val in enumerate(knn_frac_vals):
-        model.knn_frac = knn_frac_val
-        metrics = get_metrics(
-            metrics=['MAP@K', 'mean_cosine_list_dissimilarity'],
-            N=20,
-            model=model,
-            train_user_items=train_plays.transpose(),
-            test_user_items=test_plays.transpose(),
-            song_df=song_df,
-            limit=limit_users)
-        MAPk_vals[i] = metrics["MAP@K"]
-        cos_dissim_vals[i] = metrics["mean_cosine_list_dissimilarity"]
-        print(metrics)
-    
-    #reset the model
-    model.knn_frac = 0.25
-    all_MAPk_vals.append(MAPk_vals)
-    all_cos_dissim_vals.append(cos_dissim_vals)
-    print(MAPk_vals)
-    plt.figure()
-    plt.title("MAP@K for varying MUSIC profile weight")
-    plt.xlabel("Fraction of songs determined by MUSIC profile")
-    plt.ylabel("MAP@K value")
-    plt.plot(knn_frac_vals,MAPk_vals)
-#     plt.show(block=False)
-    plt.savefig("./figures/mapk_knn_frac")
-    
-    print(cos_dissim_vals)
-    plt.figure()
-    plt.title("Cosine list dissimilarity for varying MUSIC profile weight")
-    plt.xlabel("Fraction of songs determined by MUSIC profile")
-    plt.ylabel("List Dissimilarity")
-    plt.plot(knn_frac_vals,cos_dissim_vals)
-#     plt.show(block=False)
-    plt.savefig("./figures/div_knn_frac")
-    
-    #redefine
-    MAPk_vals = np.zeros(NUM_VALS)
-    cos_dissim_vals = np.zeros(NUM_VALS)
-    
-    min_overlap_vals = [0, 0.05, 0.1,0.15,0.2]
-    for i,min_overlap in enumerate(min_overlap_vals):
-        model.min_overlap = min_overlap
-        metrics = get_metrics(
-            metrics=['MAP@K', 'mean_cosine_list_dissimilarity'],
-            N=20,
-            model=model,
-            train_user_items=train_plays.transpose(),
-            test_user_items=test_plays.transpose(),
-            song_df=song_df,
-            limit=limit_users)
-        MAPk_vals[i] = metrics["MAP@K"]
-        cos_dissim_vals[i] = metrics["mean_cosine_list_dissimilarity"]
-        print(metrics)
-        
-    model.min_overlap = 0.05
-    all_MAPk_vals.append(MAPk_vals)
-    all_cos_dissim_vals.append(cos_dissim_vals)
-    
-    print(MAPk_vals)
-    plt.figure()
-    plt.title("MAP@K for varying minimum MUSIC profile overlap")
-    plt.xlabel("Minimum MUSIC profile overlap")
-    plt.ylabel("MAP@K value")
-    plt.plot(min_overlap_vals,MAPk_vals)
-#     plt.show(block=False)
-    plt.savefig("./figures/mapk_overlap")
-
-    
-    print(cos_dissim_vals)
-    plt.figure()
-    plt.title("Cosine list dissimilarity for varying minimum MUSIC profile overlap")
-    plt.xlabel("Minimum MUSIC profile overlap")
-    plt.ylabel("List Dissimilarity")
-    plt.plot(min_overlap_vals,cos_dissim_vals)
-#     plt.show(block=False)
-    plt.savefig("./figures/div_overlap")
-    
-    #redefine
-    MAPk_vals = np.zeros(NUM_VALS)
-    cos_dissim_vals = np.zeros(NUM_VALS)
-    k_vals = [10,50,100,500,1000]
-    for i,k_val in enumerate(k_vals):
-        model.k = k_val
-        metrics = get_metrics(
-            metrics=['MAP@K', 'mean_cosine_list_dissimilarity'],
-            N=20,
-            model=model,
-            train_user_items=train_plays.transpose(),
-            test_user_items=test_plays.transpose(),
-            song_df=song_df,
-            limit=limit_users)
-        MAPk_vals[i] = metrics["MAP@K"]
-        cos_dissim_vals[i] = metrics["mean_cosine_list_dissimilarity"]
-        print(metrics)
-        
-    model.k = 100
-    all_MAPk_vals.append(MAPk_vals)
-    all_cos_dissim_vals.append(cos_dissim_vals)
-    
-    
-    print(MAPk_vals)
-    plt.figure()
-    plt.title("MAP@K for number of kNN neighbours")
-    plt.xlabel("Number of kNN neighbours")
-    plt.ylabel("MAP@K value")
-    plt.plot(k_vals,MAPk_vals)
-#     plt.show(block=False)
-    plt.savefig("./figures/mapk_knn")
-
-    print(cos_dissim_vals)
-    plt.figure()
-    plt.title("Cosine list dissimilarity for varying number of kNN neighbours")
-    plt.xlabel("Number of kNN neighbours")
-    plt.ylabel("List Dissimilarity")
-    plt.plot(k_vals,cos_dissim_vals)
-#     plt.show(block=False)
-    plt.savefig("./figures/div_knn")
-    
-    np.save("./data/MAPk_vals",np.array(all_MAPk_vals))
-    np.save("./data/cos_dissim",np.array(all_cos_dissim_vals))
-
