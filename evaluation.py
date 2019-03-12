@@ -10,6 +10,9 @@ from ALSpkNN import get_baseline_cf_model, weight_cf_matrix, ALSpkNN
 from functools import partial
 import os
 from sklearn import preprocessing
+import sys
+sys.setrecursionlimit(10000)
+
 
 # https://github.com/benfred/implicit/blob/master/implicit/evaluation.pyx
 
@@ -100,18 +103,21 @@ def get_metrics(
     train_user_items,
     test_user_items,
     song_df,
-    limit):
+    limit,
+    user_to_listened_songs_map= None):
     
     user_items_coo = test_user_items.tocoo()
 
     # user_to_listened_songs_map -> {user_index: listened_song_indices}
-    user_to_listened_songs_map = {}
-    for user_index, song_index in zip(user_items_coo.row, user_items_coo.col):
-        if user_index not in user_to_listened_songs_map:
-            user_to_listened_songs_map[user_index] = set()
-        user_to_listened_songs_map[user_index].add(song_index)
-
-    rec_pool = Pool(os.cpu_count(), recs_initializer, (N, model, train_user_items))
+    if user_to_listened_songs_map == None:
+        user_to_listened_songs_map = {}
+        for user_index, song_index in zip(user_items_coo.row, user_items_coo.col):
+            if user_index not in user_to_listened_songs_map:
+                user_to_listened_songs_map[user_index] = set()
+            user_to_listened_songs_map[user_index].add(song_index)
+            
+    print("Initializing pool")
+    rec_pool = Pool(4, recs_initializer, (N, model, train_user_items))
     start = time.time()
     print('Starting pool.map')
     # user_recs -> [recommended_song_indices] -> index of element corresponds to user_index position
@@ -227,5 +233,5 @@ if __name__ == '__main__':
         train_user_items=train_plays.transpose(),
         test_user_items=test_plays.transpose(),
         song_df=song_df,
-        limit=100000)
+        limit=10000)
     print(metrics)

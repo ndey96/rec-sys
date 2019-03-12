@@ -44,7 +44,7 @@ def baseline_cf_model(train_plays):
 
 
 #%%
-load_data = True
+load_data = False
 if load_data == True:
     print("Loading Data")
     #    user_playlist_df = pd.read_hdf('data/userid_playlist.h5', key='df')
@@ -68,15 +68,26 @@ if load_data == True:
 # - The alpha value for confidence of the matrix factorization algorithm
 # - The number of iterations in the als algorithm
 # - the joining of n and m in the recommendation algirhtm
-print("Building model...")
-model = ALSpkNN(
-    user_df,
-    song_df,
-    k=100,
-    knn_frac=0.5,
-    min_overlap=0.05,
-    cf_weighting_alpha=1)
-print("Fitting model...")
-model.fit(train_plays)
-recs = model.recommend(user_sparse_index=21, train_plays_transpose=train_plays, N=5)
-print(recs)
+
+
+#print("Building model...")
+#model = ALSpkNN(
+#    user_df,
+#    song_df,
+#    k=100,
+#    knn_frac=0.5,
+#    max_overlap=0.2,
+#    cf_weighting_alpha=1)
+#print("Fitting model...")
+#model.fit(train_plays)
+#recs = model.recommend(user_sparse_index=21, train_plays_transpose=train_plays, N=5)
+#print(recs)
+
+test_users = test_plays.tocoo().col[:1000]
+for i in test_users:
+    recs = model.recommend(user_sparse_index=i, train_plays_transpose=train_plays.transpose(), N=50)
+    if len(recs) != 50:
+        print("UserId:  " + str(i))
+        print(len(recs))
+
+    
