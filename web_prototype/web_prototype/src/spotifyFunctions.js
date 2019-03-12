@@ -69,21 +69,29 @@ export function makePlaylist(callback) {
 }
 
 function getTopTracks(callback) {
-  spotifyWebApi.getMyTopTracks()
+  spotifyWebApi.getMyTopTracks({"limit": 49})
     .then((response) => {
       for (var index in response['items']) {
         topTrackIds.push(response['items'][index]['id'])
       }
+      spotifyWebApi.getMyTopTracks({"limit": 50,
+                                    "offset": 49})
+      .then((response) => {
+      for (var index in response['items']) {
+        topTrackIds.push(response['items'][index]['id'])
+      }
+      topTrackIds.shift()
+      console.log(topTrackIds)
       getRecommendations(() => {
         callback();
       });
     });
+  });
 }
 
 // TODO: Call python script here
 function getRecommendations(callback) {
   recommendedTrackIds = topTrackIds
-  recommendedTrackIds.shift()
   for (var index in recommendedTrackIds) {
     recommendedTrackUris.push(uriBuilderString+recommendedTrackIds[index])
   }

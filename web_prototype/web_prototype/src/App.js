@@ -11,18 +11,15 @@ class App extends Component {
          myText: 'Select the button below to generate recommendations. You will be redirected to authorize via Spotify.',
          shown: 'block'
       }
-      console.log(this.state)
   }
 
   componentDidMount() {
    let hashParams = getHashParams();
     if(hashParams.access_token) {
       this.setState({})
-      console.log(this.state)
       this.setState({myText: 'Generating recommendations...please wait',
                      shown: 'none'})
       setToken(hashParams.access_token);
-      console.log(this.state)
       makePlaylist(() => {
         this.setState({myText: 'Check Spotify in a few minutes for a playlist called FYDPPlaylistTest'})
       });
@@ -35,7 +32,7 @@ class App extends Component {
       <div className="App">
         Get Rec'd
         <header className="App-header">
-          {this.state.myText}
+          <p>{this.state.myText}</p>
            <button style={style} className="Button-header" onClick={authorize}>
               Get Rec'd
             </button>
