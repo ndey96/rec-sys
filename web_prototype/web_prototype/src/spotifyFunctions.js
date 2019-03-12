@@ -81,7 +81,6 @@ function getTopTracks(callback) {
         topTrackIds.push(response['items'][index]['id'])
       }
       topTrackIds.shift()
-      console.log(topTrackIds)
       getRecommendations(() => {
         callback();
       });
@@ -91,15 +90,24 @@ function getTopTracks(callback) {
 
 // TODO: Call python script here
 function getRecommendations(callback) {
-  recommendedTrackIds = topTrackIds
-  for (var index in recommendedTrackIds) {
+  var getReq = new XMLHttpRequest();
+
+  // Open a new connection, using the GET request on the URL endpoint
+  getReq.open('GET', 'http://localhost:8080/getrecd/'+topTrackIds.join(','), true);
+  getReq.onload = function () {
+    console.log(recommendedTrackUris)
+    recommendedTrackIds = this.response
+    for (var index in recommendedTrackIds) {
     recommendedTrackUris.push(uriBuilderString+recommendedTrackIds[index])
+    }
+    recommendedTrackUris.shift()
   }
-  recommendedTrackUris.shift()
-  console.log(recommendedTrackUris)
-  createAndSavePlaylist(() => {
+  // Send request
+  getReq.send();
+  
+  /*createAndSavePlaylist(() => {
       callback();
-  });
+  });*/
 }
 
 function createAndSavePlaylist(callback) {

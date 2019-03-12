@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import spotipy.util as util
@@ -6,6 +6,7 @@ import pandas as pd
 from tqdm import tqdm
 import numpy as np
 import time
+from ALSpkNN import ALSpkNN
 
 
 def get_MUSIC(sub_df):
@@ -33,8 +34,9 @@ def get_MUSIC(sub_df):
 app = Flask(__name__)
 
 
-@app.route("/getrecd")
-def GET(sp_ids):
+@app.route("/getrecd/<sp_ids_string>")
+def GET(sp_ids_string):
+    sp_ids = sp_ids_string.split(',')
     client_credentials_manager = SpotifyClientCredentials(
         client_id='02c386b9bcfb43248ad7011c576c1e3f',
         client_secret='f2406ab918d349689325d2f6916aa656')
@@ -65,7 +67,7 @@ def GET(sp_ids):
 
     spotify_song_ids = song_df.loc[song_sparse_indices]['spotify_id'].to_list()
 
-    return spotify_song_ids
+    return jsonify(result=spotify_song_ids)
 
 
 if __name__ == '__main__':

@@ -5,6 +5,7 @@
   "homepage": "https://fydp-getrecd.appspot.com",
   "host": "https://fydp-getrecd.appspot.com",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.16.4",
     "lodash": "^4.17.11",
     "react": "^16.7.0",
