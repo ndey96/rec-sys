@@ -46,10 +46,6 @@ if __name__ == '__main__':
 
     ##################################################################
 
-    print("Building model...")
-    model = ALSpkNN(user_df, song_df, k=100, knn_frac=0.25, cf_weighting_alpha=1, max_overlap=0.05)
-    print("Fitting model...")
-    model.fit(train_plays)
 
     limit_users = 10
     
@@ -57,10 +53,17 @@ if __name__ == '__main__':
         file.write('k, knn_frac, max_overlap, map_k, cosine, metadata\n')
     
     while True:
-        
-        model.k = int(log_uniform(10, 10000))
-        model.knn_frac = random.uniform(0, 1)
-        model.max_overlap = random.uniform(0, 0.5)
+        print("Building model...")
+        model = ALSpkNN(
+            user_df,
+            song_df,
+            k=int(log_uniform(10, 10000)),
+            knn_frac=random.uniform(0, 1),
+            cf_weighting_alpha=1,
+            max_overlap=random.uniform(0, 1),
+            min_songs=int(random.uniform(1, 15)))
+        print("Fitting model...")
+        model.fit(train_plays)
         
         print(f'Evaluating ALSpkNN with k={model.k}, knn_frac={model.knn_frac}, max_overlap={model.max_overlap}')
 
