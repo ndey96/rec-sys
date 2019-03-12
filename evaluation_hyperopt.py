@@ -177,7 +177,7 @@ def get_mean_metadata_diversity(user_recs, song_df, limit):
     
     scaling_factor = 20 / N
     
-    with Pool(os.cpu_count(), meta_div_initializer, (song_df)) as meta_div_pool:
+    with Pool(os.cpu_count(), meta_div_initializer, (song_df,)) as meta_div_pool:
         meta_divs = meta_div_pool.map(
             func=get_user_meta_div_wrapper,
             iterable=user_recs[:limit],

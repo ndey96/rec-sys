@@ -51,7 +51,7 @@ if __name__ == '__main__':
     print("Fitting model...")
     model.fit(train_plays)
 
-    limit_users = 10000
+    limit_users = 10
     
     with open('data/random_search_log.txt', 'w') as file:
         file.write('k, knn_frac, max_overlap, map_k, cosine, metadata\n')
