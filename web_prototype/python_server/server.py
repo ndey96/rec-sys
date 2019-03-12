@@ -7,6 +7,7 @@ from tqdm import tqdm
 import numpy as np
 import time
 from ALSpkNN import ALSpkNN
+from flask_cors import CORS
 
 
 def get_MUSIC(sub_df):
@@ -32,6 +33,7 @@ def get_MUSIC(sub_df):
 
 
 app = Flask(__name__)
+CORS(app)
 
 
 @app.route("/getrecd/<sp_ids_string>")
