@@ -8,6 +8,7 @@ import utilities
 import time
 from random import shuffle
 import itertools
+from itertools import filterfalse
 import sys
 import random
 sys.setrecursionlimit(10000)
@@ -41,7 +42,7 @@ class ALSpkNN():
                  song_df,
                  k=100,
                  knn_frac=0.5,
-                 max_overlap=0.05,
+                 max_overlap=0.2,
                  cf_weighting_alpha=1,
                  min_songs=5):
 
@@ -91,7 +92,7 @@ class ALSpkNN():
 
     # Returns list of song_sparse_indices
     def get_knn_top_m_song_sparse_indices(self, user_sparse_index, m,
-                                          max_overlap):
+                                          max_overlap,songs_from_cf):
 
         user_MUSIC = self.user_df.loc[user_sparse_index]['MUSIC']
         distances, indices = self.kdtree.query(user_MUSIC, self.k, p=1)
@@ -125,22 +126,18 @@ class ALSpkNN():
             
             print("Choosing random users since not enough users have small enough overlap")
             
-        
         user_songs = self.user_df.loc[user_sparse_index]['song_sparse_indices']
         
-        #Remove songs already in user listening history. 
-        #Works because of shallow copy which applies to closest_user_song_sparse_indices
-        for songs_list in closest_user_song_sparse_indices:
-            for ind,song in enumerate(songs_list):
-                if song in user_songs:
-                    del songs_list[ind]
-
         # closest_user_song_sparse_indices_flat -> list of song_ids
-        closest_user_song_sparse_indices_flat = itertools.chain.from_iterable(
-            closest_user_song_sparse_indices)
+        closest_user_song_sparse_indices_flat = itertools.chain.from_iterable(closest_user_song_sparse_indices)
+
+        filtered_songs = []
+        for song in closest_user_song_sparse_indices_flat:
+            if song not in (user_songs + songs_from_cf):
+                filtered_songs.append(song)
         
-        top_m_songs = [i[0] for i in Counter(closest_user_song_sparse_indices_flat).most_common(m)]
-        
+        top_m_songs = [i[0] for i in Counter(filtered_songs).most_common(m)]
+
         return top_m_songs
 
     # Returns [song_sparse_index]
@@ -157,7 +154,8 @@ class ALSpkNN():
         m_songs = self.get_knn_top_m_song_sparse_indices(
             user_sparse_index=user_sparse_index,
             m=m,
-            max_overlap=self.max_overlap)
+            max_overlap=self.max_overlap,
+            songs_from_cf = n_songs)
         # m_songs = self.song_df.loc[m_song_ids]['sparse_index'].tolist()
 
         rec_list = n_songs + m_songs
