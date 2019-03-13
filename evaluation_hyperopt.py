@@ -212,20 +212,38 @@ if __name__ == '__main__':
 
     ##################################################################
 
-    print("Building and fitting the baseline CF model")
-    baseline_cf_model = get_baseline_cf_model()
-    weighted_train_csr = weight_cf_matrix(train_plays, alpha=1)
-    baseline_cf_model.fit(weighted_train_csr)
+    # print("Building and fitting the baseline CF model")
+    # baseline_cf_model = get_baseline_cf_model()
+    # weighted_train_csr = weight_cf_matrix(train_plays, alpha=1)
+    # baseline_cf_model.fit(weighted_train_csr)
 
-    print("Evaluating the baseline CF model")
+    # print("Evaluating the baseline CF model")
+    # metrics = get_metrics(
+    #     metrics=['MAP@K', 'mean_cosine_list_dissimilarity', 'metadata_diversity'],
+    #     N=20,
+    #     model=baseline_cf_model,
+    #     train_user_items=train_plays.transpose(),
+    #     test_user_items=test_plays.transpose(),
+    #     song_df=song_df,
+    #     limit=10)
+    # print(metrics)
+
+    ##################################################################
+
+    print("Building and fitting the ALSpkNN model")
+    model = ALSpkNN(user_df, song_df, knn_frac=0.9, mode='popular')
+    model.fit(train_plays)
+    print("Evaluating the ALSpkNN model")
     metrics = get_metrics(
         metrics=['MAP@K', 'mean_cosine_list_dissimilarity', 'metadata_diversity'],
         N=20,
-        model=baseline_cf_model,
+        model=model,
         train_user_items=train_plays.transpose(),
         test_user_items=test_plays.transpose(),
         song_df=song_df,
-        limit=10000)
+        limit=1000)
     print(metrics)
-
-    ##################################################################
+    song_sparse_indices = model.recommend(
+        user_sparse_index=1234, train_plays_transpose=train_plays.transpose(), N=20)
+    print(song_sparse_indices)
+    assert len(song_sparse_indices) == len(np.unique(song_sparse_indices))

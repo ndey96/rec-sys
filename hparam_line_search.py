@@ -26,6 +26,7 @@ if __name__ == '__main__':
 
     #order of placement in dictionary matters
     hparam_vals_map = {
+        'mode': ['popular', 'weighted_random', 'random']
         'k': [50, 100, 250, 500, 1000],
         # 'max_overlap': [0.05, 0.1, 0.15, 0.2],
         'knn_frac': [0, 0.25, 0.5, 0.75, 1],
@@ -45,7 +46,8 @@ if __name__ == '__main__':
     ]
 
 
-    USER_LIMIT = 9999999
+    # USER_LIMIT = 9999999
+    USER_LIMIT = 10000
     for hparam_name, hparam_vals in hparam_vals_map.items():
         print(f'\n\nStarting {hparam_name} line search...')
         results = np.zeros((len(metrics_to_get), len(hparam_vals)))
