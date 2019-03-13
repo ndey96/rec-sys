@@ -8,6 +8,8 @@ const playlistName = 'GetRecd';
 const uriBuilderString = 'spotify:track:';
 const devBrowser = 'http://localhost:3000/'
 const prodBrowser = 'https://fydp-getrecd.appspot.com/'
+const devEndpoint = 'http://127.0.0.1:8080/getrecd/'
+const prodEndpoint = 'http://35.190.143.202:8080/getrecd/'
 var topTrackIds = [String];
 var recommendedTrackIds = [String];
 var recommendedTrackUris = [String];
@@ -15,7 +17,7 @@ var recommendedTrackUris = [String];
 export function authorize(callback) {
       localStorage.removeItem(stateKey);
       const CLIENT_ID = '3f2b320cfc4f4af5a106fa21e6bc8d0c';
-      const REDIRECT_URI = prodBrowser;
+      const REDIRECT_URI = devBrowser;
       const scopes = [
       'user-top-read',
       'playlist-modify-public',
@@ -88,12 +90,10 @@ function getTopTracks(callback) {
   });
 }
 
-// TODO: Call python script here
 function getRecommendations(callback) {
   var getReq = new XMLHttpRequest();
-
   // Open a new connection, using the GET request on the URL endpoint
-  getReq.open('GET', 'http://localhost:8080/getrecd/'+topTrackIds.join(','), true);
+  getReq.open('GET', devEndpoint+topTrackIds.join(','), true);
   getReq.onload = function () {
     console.log(this.response)
     var res=JSON.parse(this.response)
@@ -106,7 +106,7 @@ function getRecommendations(callback) {
     recommendedTrackUris.shift()
     console.log(recommendedTrackUris)
     createAndSavePlaylist(() => {
-      callback();
+       callback();
     })    
   }
   // Send request

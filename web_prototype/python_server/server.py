@@ -8,7 +8,7 @@ import numpy as np
 import time
 from ALSpkNN import ALSpkNN
 from flask_cors import CORS
-
+import requests
 
 def get_MUSIC(sub_df):
     # LET n = number of songs
@@ -34,10 +34,12 @@ def get_MUSIC(sub_df):
 
 app = Flask(__name__)
 CORS(app)
-
+# user_df_data = requests.get('https://storage.googleapis.com/server-getrecd.appspot.com/user_df.h5')
+# user_df = pd.DataFrame(user_df_data)
+# song_df_data = requests.get('https://storage.googleapis.com/server-getrecd.appspot.com/song_df.h5')
+# song_df = pd.DataFrame(song_df_data)
 user_df = pd.read_hdf('user_df.h5')
-song_df = pd.read_hdf('song_df.h5', key='df')
-
+song_df = pd.read_hdf('song_df.h5', key = 'df')
 
 @app.route("/getrecd/<sp_ids_string>")
 def GET(sp_ids_string):
@@ -64,14 +66,13 @@ def GET(sp_ids_string):
     # user_row.head()
     new_user_df = user_df.append(user_row)
 
-    model = ALSpkNN(new_user_df, song_df, k=35, knn_frac=1)
+    model = ALSpkNN(new_user_df, song_df, k=150, knn_frac=1)
     song_sparse_indices = model.recommend(
         user_sparse_index=user_sparse_index, train_plays_transpose=None, N=20)
 
     spotify_song_ids = song_df.loc[song_sparse_indices]['spotify_id'].to_list()
 
     return jsonify(result=spotify_song_ids)
-
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8080, debug=True)
