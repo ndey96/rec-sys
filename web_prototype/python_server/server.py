@@ -35,6 +35,9 @@ def get_MUSIC(sub_df):
 app = Flask(__name__)
 CORS(app)
 
+user_df = pd.read_hdf('user_df.h5')
+song_df = pd.read_hdf('song_df.h5', key='df')
+
 
 @app.route("/getrecd/<sp_ids_string>")
 def GET(sp_ids_string):
@@ -47,7 +50,6 @@ def GET(sp_ids_string):
 
     audio_df = pd.DataFrame(audio_features)
     MUSIC = get_MUSIC(audio_df)
-    user_df = pd.read_hdf('user_df.h5')
 
     user_sparse_index = 69696969
     user_row = pd.DataFrame([{
@@ -60,10 +62,9 @@ def GET(sp_ids_string):
     }])
     user_row.set_index('sparse_index', inplace=True)
     # user_row.head()
-    user_df = user_df.append(user_row)
-    song_df = pd.read_hdf('song_df.h5', key='df')
+    new_user_df = user_df.append(user_row)
 
-    model = ALSpkNN(user_df, song_df, k=35, knn_frac=1)
+    model = ALSpkNN(new_user_df, song_df, k=35, knn_frac=1)
     song_sparse_indices = model.recommend(
         user_sparse_index=user_sparse_index, train_plays_transpose=None, N=20)
 
