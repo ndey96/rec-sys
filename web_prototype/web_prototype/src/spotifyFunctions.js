@@ -4,7 +4,7 @@ import SpotifyWebApi from './SpotifyWebApi'
 
 const spotifyWebApi = new SpotifyWebApi();
 const stateKey = 'spotify-auth-key';
-const playlistName = 'FYDPPlaylistTest';
+const playlistName = 'GetRecd';
 const uriBuilderString = 'spotify:track:';
 const devBrowser = 'http://localhost:3000/'
 const prodBrowser = 'https://fydp-getrecd.appspot.com/'
@@ -15,7 +15,7 @@ var recommendedTrackUris = [String];
 export function authorize(callback) {
       localStorage.removeItem(stateKey);
       const CLIENT_ID = '3f2b320cfc4f4af5a106fa21e6bc8d0c';
-      const REDIRECT_URI = devBrowser;
+      const REDIRECT_URI = prodBrowser;
       const scopes = [
       'user-top-read',
       'playlist-modify-public',
@@ -95,19 +95,22 @@ function getRecommendations(callback) {
   // Open a new connection, using the GET request on the URL endpoint
   getReq.open('GET', 'http://localhost:8080/getrecd/'+topTrackIds.join(','), true);
   getReq.onload = function () {
-    console.log(recommendedTrackUris)
-    recommendedTrackIds = this.response
-    for (var index in recommendedTrackIds) {
-    recommendedTrackUris.push(uriBuilderString+recommendedTrackIds[index])
+    console.log(this.response)
+    var res=JSON.parse(this.response)
+    recommendedTrackIds = res['result']
+    var uniqueRecs = Array.from(new Set(recommendedTrackIds))
+    console.log(uniqueRecs)
+    for (var index in uniqueRecs) {
+      recommendedTrackUris.push(uriBuilderString+uniqueRecs[index])
     }
     recommendedTrackUris.shift()
+    console.log(recommendedTrackUris)
+    createAndSavePlaylist(() => {
+      callback();
+    })    
   }
   // Send request
   getReq.send();
-  
-  /*createAndSavePlaylist(() => {
-      callback();
-  });*/
 }
 
 function createAndSavePlaylist(callback) {

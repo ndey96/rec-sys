@@ -17,11 +17,11 @@ class App extends Component {
    let hashParams = getHashParams();
     if(hashParams.access_token) {
       this.setState({})
-      this.setState({myText: 'Generating recommendations...please wait',
+      this.setState({myText: 'Generating recommendations... please wait',
                      shown: 'none'})
       setToken(hashParams.access_token);
       makePlaylist(() => {
-        this.setState({myText: 'Check Spotify in a few minutes for a playlist called FYDPPlaylistTest'})
+        this.setState({myText: 'Check Spotify in a few minutes for a playlist called GetRecd'})
       });
     }
   }
