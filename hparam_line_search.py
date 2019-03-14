@@ -26,10 +26,10 @@ if __name__ == '__main__':
 
     #order of placement in dictionary matters
     hparam_vals_map = {
-        'mode': ['popular', 'weighted_random', 'random']
-        # 'k': [50, 100, 250, 500, 1000],
+        'mode': ['popular', 'weighted_random', 'random'],
+        'k': [50, 100, 250, 500, 1000],
+        'knn_frac': [0, 0.25, 0.5, 0.75, 1],
         # 'max_overlap': [0.05, 0.1, 0.15, 0.2],
-        # 'knn_frac': [0, 0.25, 0.5, 0.75, 1],
         # 'min_songs': [1, 5, 10, 15],
     }
 
@@ -39,16 +39,17 @@ if __name__ == '__main__':
         'knn_frac': 0.5,
         'min_songs': 5,
         'cf_weighting_alpha': 1,
+        'mode': 'random'
     }
 
-    # metrics_to_get = [
-    #     'MAP@K', 'mean_cosine_list_dissimilarity', 'metadata_diversity'
-    # ]
-    metrics_to_get = ['MAP@K']
+    metrics_to_get = [
+        'MAP@K', 'mean_cosine_list_dissimilarity', 'metadata_diversity'
+    ]
+    # metrics_to_get = ['MAP@K']
 
-    # USER_LIMIT = 9999999
-    USER_LIMIT = 10000
-    figure_dir = 'figures_10k_N_20_mode'
+    USER_LIMIT = 9999999
+    # USER_LIMIT = 10000
+    figure_dir = 'figures_91k_N_20'
     for hparam_name, hparam_vals in hparam_vals_map.items():
         print(f'\n\n\n\nStarting {hparam_name} line search...')
         results = np.zeros((len(metrics_to_get), len(hparam_vals)))

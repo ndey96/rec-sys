@@ -4,7 +4,6 @@ os.environ['MKL_NUM_THREADS'] = '1'
 from scipy.spatial import KDTree
 import numpy as np
 from collections import Counter
-import utilities
 import time
 from random import shuffle
 import itertools
@@ -148,7 +147,6 @@ class ALSpkNN():
             if song not in (user_songs + songs_from_cf):
                 filtered_songs.append(song)
 
-        # m most popular songs are returned
         # song_count_tuples -> format [(song_sparse_index, count)]
         song_count_tuples = Counter(filtered_songs).most_common()
         top_songs = [song_tuple[0] for song_tuple in song_count_tuples]
@@ -190,9 +188,7 @@ class ALSpkNN():
             m_songs = self.get_knn_top_m_song_sparse_indices(
                 user_sparse_index=user_sparse_index, m=m, songs_from_cf=n_songs)
 
-        rec_list = n_songs + m_songs
-        # utilities.concat_shuffle(n_songs, m_songs)
-        return rec_list[:N]
+        return n_songs + m_songs
 
 
 if __name__ == '__main__':
