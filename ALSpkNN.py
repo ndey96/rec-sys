@@ -12,6 +12,8 @@ from itertools import filterfalse
 import sys
 import random
 sys.setrecursionlimit(10000)
+from scipy.sparse import load_npz
+import pandas as pd
 
 
 def get_baseline_cf_model():
@@ -148,22 +150,22 @@ class ALSpkNN():
                 filtered_songs.append(song)
 
         # m most popular songs are returned
+        # song_count_tuples -> format [(song_sparse_index, count)]
+        song_count_tuples = Counter(filtered_songs).most_common()
+        top_songs = [song_tuple[0] for song_tuple in song_count_tuples]
+        top_song_counts = [song_tuple[1] for song_tuple in song_count_tuples]
         if self.mode == 'popular':
-            top_m_songs = [i[0] for i in Counter(filtered_songs).most_common(m)]
+            m_songs = top_songs[:m]
 
         # random sample where more popular songs are weighted more heavily based on relative popularity
         elif self.mode == 'weighted_random':
-            top_m_songs = []
-            # TODO: refactor with random.choice to eliminate the while loop set stuff
-            while len(top_m_songs) < m:
-                random.sample(filtered_songs, m - len(top_m_songs))
-                top_m_songs = set(top_m_songs)
+            m_songs = random.choices(top_songs, weights=top_song_counts, k=m)
 
         # random sample where all songs are weighted equally regardless of popularity
         elif self.mode == 'random':
-            top_m_songs = random.sample(set(filtered_songs), m)
+            m_songs = random.sample(top_songs, k=m)
 
-        return top_m_songs
+        return m_songs
 
     # Returns [song_sparse_index]
     def recommend(self, user_sparse_index, train_plays_transpose, N):
@@ -186,3 +188,20 @@ class ALSpkNN():
         rec_list = n_songs + m_songs
         # utilities.concat_shuffle(n_songs, m_songs)
         return rec_list[:N]
+
+
+if __name__ == '__main__':
+    train_plays = load_npz('data/train_sparse.npz')
+    test_plays = load_npz('data/test_sparse.npz')
+    song_df = pd.read_hdf('data/song_df.h5', key='df')
+    user_df = pd.read_hdf('data/user_df.h5', key='df')
+
+    print("Building and fitting the ALSpkNN model")
+    model = ALSpkNN(user_df, song_df, knn_frac=0.9, mode='popular')
+    model.fit(train_plays)
+    song_sparse_indices = model.recommend(
+        user_sparse_index=1234,
+        train_plays_transpose=train_plays.transpose(),
+        N=20)
+    print(song_sparse_indices)
+    assert len(song_sparse_indices) == len(np.unique(song_sparse_indices))
