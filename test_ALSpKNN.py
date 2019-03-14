@@ -52,8 +52,13 @@ model = ALSpkNN(
 print("Fitting model...")
 model.fit(train_plays)
 
+print("Sample Recommendation")
+rec = model.recommend(user_sparse_index=27,train_plays_transpose=train_plays.transpose(), N=5)
+print(rec)
+
 test_users = list(set(test_plays.tocoo().col))[:2000]
 num_recommendations = 20
+
 print("Begin Testing...")
 start = time.time()
 for iteration,i in enumerate(test_users):
