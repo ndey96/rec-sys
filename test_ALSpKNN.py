@@ -51,9 +51,8 @@ model = ALSpkNN(
 #model = RandomRecommender()
 print("Fitting model...")
 model.fit(train_plays)
-recs = model.recommend(user_sparse_index=21, train_plays_transpose=train_plays.transpose(), N=5)
 
-test_users = test_plays.tocoo().col[:1000]
+test_users = list(set(test_plays.tocoo().col))[:2000]
 num_recommendations = 20
 print("Begin Testing...")
 start = time.time()
