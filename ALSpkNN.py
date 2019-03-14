@@ -104,7 +104,6 @@ class ALSpkNN():
 
         user_MUSIC = self.user_df.loc[user_sparse_index]['MUSIC']
         distances, indices = self.kdtree.query(user_MUSIC, self.k, p=1)
-        # TODO: maybe sort closest_user_ids by distance if they are not already sorted?
 
         closest_user_song_sparse_indices = self.user_df.loc[indices][
             'song_sparse_indices'].values
@@ -157,13 +156,19 @@ class ALSpkNN():
         if self.mode == 'popular':
             m_songs = top_songs[:m]
 
-        # random sample where more popular songs are weighted more heavily based on relative popularity
-        elif self.mode == 'weighted_random':
-            m_songs = random.choices(top_songs, weights=top_song_counts, k=m)
+        elif self.mode in ['weighted_random', 'random']:
+            weights = None
+            if self.mode == 'weighted_random':
+                weights = top_song_counts
 
-        # random sample where all songs are weighted equally regardless of popularity
-        elif self.mode == 'random':
-            m_songs = random.sample(top_songs, k=m)
+            m_song_count_tuples = random.choices(
+                song_count_tuples, weights=weights, k=m)
+
+            # Although randomly sampled, the songs should still be sorted by popularity to maximize MAP@K
+            m_song_count_tuples.sort(
+                key=lambda song_tuple: song_tuple[1], reverse=True)
+
+            m_songs = [song_tuple[0] for song_tuple in m_song_count_tuples]
 
         return m_songs
 
