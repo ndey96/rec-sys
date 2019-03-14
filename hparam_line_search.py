@@ -27,8 +27,8 @@ if __name__ == '__main__':
     #order of placement in dictionary matters
     hparam_vals_map = {
         'mode': ['popular', 'weighted_random', 'random'],
-        'k': [50, 100, 250, 500, 1000],
-        'knn_frac': [0, 0.25, 0.5, 0.75, 1],
+        'knn_frac': [0.25, 0.5, 0.75, 1],
+        'k': [50, 100, 250, 500],
         # 'max_overlap': [0.05, 0.1, 0.15, 0.2],
         # 'min_songs': [1, 5, 10, 15],
     }
@@ -79,7 +79,7 @@ if __name__ == '__main__':
             metric_name = metrics_to_get[i]
             plt.figure()
             plt.title(f'Effect of varying {hparam_name}')
-            plt.plot(hparam_vals, results[i, :])
+            plt.plot(hparam_vals, results[i, :], linestyle='--', marker='o', color='b')
             plt.ylabel(metric_name)
             plt.xlabel(hparam_name + ' values')
             plt.tight_layout()

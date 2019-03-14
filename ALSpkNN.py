@@ -149,18 +149,23 @@ class ALSpkNN():
 
         # song_count_tuples -> format [(song_sparse_index, count)]
         song_count_tuples = Counter(filtered_songs).most_common()
+        if len(song_count_tuples) < m:
+            print('len(song_count_tuples) < m')
+
         top_songs = [song_tuple[0] for song_tuple in song_count_tuples]
-        top_song_counts = [song_tuple[1] for song_tuple in song_count_tuples]
         if self.mode == 'popular':
             m_songs = top_songs[:m]
 
         elif self.mode in ['weighted_random', 'random']:
-            weights = None
+            top_song_probs = None
             if self.mode == 'weighted_random':
-                weights = top_song_counts
+                top_song_counts = [
+                    song_tuple[1] for song_tuple in song_count_tuples
+                ]
+                top_song_probs = top_song_counts / np.sum(top_song_counts)
 
-            m_song_count_tuples = random.choices(
-                song_count_tuples, weights=weights, k=m)
+            m_song_count_tuples = np.random.choice(
+                song_count_tuples, p=top_song_probs, size=m, replace=False)
 
             # Although randomly sampled, the songs should still be sorted by popularity to maximize MAP@K
             m_song_count_tuples.sort(
