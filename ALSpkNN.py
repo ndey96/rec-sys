@@ -164,9 +164,11 @@ class ALSpkNN():
                 ]
                 top_song_probs = top_song_counts / np.sum(top_song_counts)
 
-            m_song_count_tuples = np.random.choice(
-                song_count_tuples, p=top_song_probs, size=m, replace=False)
-
+            m_song_count_tuples_indices = np.random.choice(
+                len(song_count_tuples), p=top_song_probs, size=m, replace=False)
+            m_song_count_tuples = [
+                song_count_tuples[idx] for idx in m_song_count_tuples_indices
+            ]
             # Although randomly sampled, the songs should still be sorted by popularity to maximize MAP@K
             m_song_count_tuples.sort(
                 key=lambda song_tuple: song_tuple[1], reverse=True)
@@ -203,7 +205,7 @@ if __name__ == '__main__':
     user_df = pd.read_hdf('data/user_df.h5', key='df')
 
     print("Building and fitting the ALSpkNN model")
-    model = ALSpkNN(user_df, song_df, knn_frac=0.9, mode='popular')
+    model = ALSpkNN(user_df, song_df, knn_frac=1, mode='weighted_random')
     model.fit(train_plays)
     song_sparse_indices = model.recommend(
         user_sparse_index=1234,
