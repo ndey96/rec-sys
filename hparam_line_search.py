@@ -34,12 +34,12 @@ if __name__ == '__main__':
     }
 
     default_vals = {
-        'k': 35,
+        'k': 150,
         'max_overlap': 0.1,
         'knn_frac': 0.5,
         'min_songs': 5,
         'cf_weighting_alpha': 1,
-        'mode': 'random'
+        'mode': 'popular'
     }
 
     metrics_to_get = [
