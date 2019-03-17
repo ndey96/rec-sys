@@ -4,7 +4,6 @@ os.environ['MKL_NUM_THREADS'] = '1'
 from scipy.spatial import KDTree
 import numpy as np
 from collections import Counter
-import utilities
 import time
 from random import shuffle
 import itertools
@@ -12,6 +11,8 @@ from itertools import filterfalse
 import sys
 import random
 sys.setrecursionlimit(10000)
+from scipy.sparse import load_npz
+import pandas as pd
 
 
 def get_baseline_cf_model():
@@ -38,6 +39,7 @@ class ALSpkNN():
     knn_frac = % of KNN recommendations
     max_overlap = maximum % overlap between user and their MUSIC neighbours
     min_songs = only use users with > min_songs in our KNN code
+    mode = one of ['popular', 'weighted_random', 'random']
     '''
 
     def __init__(self,
@@ -47,7 +49,8 @@ class ALSpkNN():
                  knn_frac=0.5,
                  max_overlap=0.2,
                  cf_weighting_alpha=1,
-                 min_songs=5):
+                 min_songs=5,
+                 mode='popular'):
 
         self.user_df = user_df
         self.song_df = song_df
@@ -56,6 +59,7 @@ class ALSpkNN():
         self.k = k
         self.max_overlap = max_overlap
         self.min_songs = min_songs
+        self.mode = mode
 
         user_df_subset = user_df.loc[user_df['num_songs'] > (min_songs - 1)]
         self.kdtree = KDTree(user_df_subset['MUSIC'].tolist())
@@ -95,11 +99,10 @@ class ALSpkNN():
 
     # Returns list of song_sparse_indices
     def get_knn_top_m_song_sparse_indices(self, user_sparse_index, m,
-                                          max_overlap, songs_from_cf, mode):
+                                          songs_from_cf):
 
         user_MUSIC = self.user_df.loc[user_sparse_index]['MUSIC']
         distances, indices = self.kdtree.query(user_MUSIC, self.k, p=1)
-        # TODO: maybe sort closest_user_ids by distance if they are not already sorted?
 
         closest_user_song_sparse_indices = self.user_df.loc[indices][
             'song_sparse_indices'].values
@@ -110,7 +113,7 @@ class ALSpkNN():
         overlap_list = self.get_overlap_list(user_sparse_index,
                                              closest_user_song_sparse_indices)
         for i in range(len(closest_user_song_sparse_indices)):
-            if overlap_list[i] > max_overlap:
+            if overlap_list[i] > self.max_overlap:
                 insufficient_overlap_indices.append(i)
 
         #Users with only one or two songs in their listening history will almost
@@ -143,25 +146,36 @@ class ALSpkNN():
         for song in closest_user_song_sparse_indices_flat:
             if song not in (user_songs + songs_from_cf):
                 filtered_songs.append(song)
-                
-        # m most popular songs are returned
-        if mode == 'popular':
-            top_m_songs = [i[0] for i in Counter(filtered_songs).most_common(m)]
-            
-        # random sample where more popular songs are weighted more heavily based on relative popularity
-        elif mode == 'weighted_popular':
-            top_m_songs = []
-            
-            while len(top_m_songs) < m:
-                random.sample(filtered_songs, m - len(top_m_songs))
-                top_m_songs = set(top_m_songs)
-            
-        # random sample where all songs are weighted equally regardless of popularity
-        elif mode == 'random':
-            top_m_songs = random.sample(set(filtered_songs), m)
-            
 
-        return top_m_songs
+        # song_count_tuples -> format [(song_sparse_index, count)]
+        song_count_tuples = Counter(filtered_songs).most_common()
+        if len(song_count_tuples) < m:
+            print('len(song_count_tuples) < m')
+
+        top_songs = [song_tuple[0] for song_tuple in song_count_tuples]
+        if self.mode == 'popular':
+            m_songs = top_songs[:m]
+
+        elif self.mode in ['weighted_random', 'random']:
+            top_song_probs = None
+            if self.mode == 'weighted_random':
+                top_song_counts = [
+                    song_tuple[1] for song_tuple in song_count_tuples
+                ]
+                top_song_probs = top_song_counts / np.sum(top_song_counts)
+
+            m_song_count_tuples_indices = np.random.choice(
+                len(song_count_tuples), p=top_song_probs, size=m, replace=False)
+            m_song_count_tuples = [
+                song_count_tuples[idx] for idx in m_song_count_tuples_indices
+            ]
+            # Although randomly sampled, the songs should still be sorted by popularity to maximize MAP@K
+            m_song_count_tuples.sort(
+                key=lambda song_tuple: song_tuple[1], reverse=True)
+
+            m_songs = [song_tuple[0] for song_tuple in m_song_count_tuples]
+
+        return m_songs
 
     # Returns [song_sparse_index]
     def recommend(self, user_sparse_index, train_plays_transpose, N):
@@ -179,12 +193,23 @@ class ALSpkNN():
         m_songs = []
         if m > 0:
             m_songs = self.get_knn_top_m_song_sparse_indices(
-                user_sparse_index=user_sparse_index,
-                m=m,
-                max_overlap=self.max_overlap,
-                songs_from_cf=n_songs,
-                mode='random')
+                user_sparse_index=user_sparse_index, m=m, songs_from_cf=n_songs)
 
-        rec_list = n_songs + m_songs
-        # utilities.concat_shuffle(n_songs, m_songs)
-        return rec_list[:N]
+        return n_songs + m_songs
+
+
+if __name__ == '__main__':
+    train_plays = load_npz('data/train_sparse.npz')
+    test_plays = load_npz('data/test_sparse.npz')
+    song_df = pd.read_hdf('data/song_df.h5', key='df')
+    user_df = pd.read_hdf('data/user_df.h5', key='df')
+
+    print("Building and fitting the ALSpkNN model")
+    model = ALSpkNN(user_df, song_df, knn_frac=1, mode='weighted_random')
+    model.fit(train_plays)
+    song_sparse_indices = model.recommend(
+        user_sparse_index=1234,
+        train_plays_transpose=train_plays.transpose(),
+        N=20)
+    print(song_sparse_indices)
+    assert len(song_sparse_indices) == len(np.unique(song_sparse_indices))
