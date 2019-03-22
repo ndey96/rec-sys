@@ -9,6 +9,10 @@ from implicit.als import AlternatingLeastSquares
 from ALSpkNN import ALSpkNN
 from RandomRecommender import RandomRecommender
 from implicit.evaluation import mean_average_precision_at_k
+from WeightedRecommender import WeightedRecommender
+
+from PopularRecommender import PopularRecommender
+
 
 import time
 
@@ -41,14 +45,16 @@ if load_data == True:
 
 
 print("Building model...")
-model = ALSpkNN(
-    user_df,
-    song_df,
-    k=100,
-    knn_frac=0.5,
-    max_overlap=0.2,
-    cf_weighting_alpha=1)
+#model = ALSpkNN(
+#    user_df,
+#    song_df,
+#    k=100,
+#    knn_frac=0.5,
+#    max_overlap=0.2,
+#    cf_weighting_alpha=1)
 #model = RandomRecommender()
+model = PopularRecommender()
+#model = WeightedRecommender()
 print("Fitting model...")
 model.fit(train_plays)
 
@@ -56,7 +62,7 @@ print("Sample Recommendation")
 rec = model.recommend(user_sparse_index=27,train_plays_transpose=train_plays.transpose(), N=5)
 print(rec)
 
-test_users = list(set(test_plays.tocoo().col))[:2000]
+test_users = list(set(test_plays.tocoo().col))[:1000]
 num_recommendations = 20
 
 print("Begin Testing...")
