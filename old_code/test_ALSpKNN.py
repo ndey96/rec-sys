@@ -7,40 +7,14 @@ from scipy.sparse import csr_matrix
 from implicit.als import AlternatingLeastSquares
 
 from ALSpkNN import ALSpkNN
+from RandomRecommender import RandomRecommender
 from implicit.evaluation import mean_average_precision_at_k
+from WeightedRecommender import WeightedRecommender
+
+from PopularRecommender import PopularRecommender
 
 
-#%%
-class RandomRecommender:
-
-    def __init__(self):
-        #        self.min_bound = min_bound
-        #        self.high_bound = high_bound
-        #        self.confidence = confidence
-        self.something = 1
-
-    def recommend(self, userid, train_csr, N):
-        recs = np.random.randint(self.min_bound, self.high_bound, N)
-        recs = [(rec, self.confidence) for rec in recs]
-        return recs
-
-    def fit(self, train_data):
-        self.min_bound = 0
-        self.high_bound = train_data.shape[0]
-        self.confidence = 1
-        return 1
-
-
-#%%
-def baseline_cf_model(train_plays):
-    als_params = {
-        'factors': 16,
-        'dtype': np.float32,
-        'iterations': 2,
-        'calculate_training_loss': True
-    }
-    cf_model = AlternatingLeastSquares(**als_params)
-    return cf_model
+import time
 
 
 #%%
@@ -70,7 +44,7 @@ if load_data == True:
 # - the joining of n and m in the recommendation algirhtm
 
 
-#print("Building model...")
+print("Building model...")
 #model = ALSpkNN(
 #    user_df,
 #    song_df,
@@ -78,16 +52,33 @@ if load_data == True:
 #    knn_frac=0.5,
 #    max_overlap=0.2,
 #    cf_weighting_alpha=1)
-#print("Fitting model...")
-#model.fit(train_plays)
-#recs = model.recommend(user_sparse_index=21, train_plays_transpose=train_plays, N=5)
-#print(recs)
+#model = RandomRecommender()
+model = PopularRecommender()
+#model = WeightedRecommender()
+print("Fitting model...")
+model.fit(train_plays)
 
-test_users = test_plays.tocoo().col[:1000]
-for i in test_users:
-    recs = model.recommend(user_sparse_index=i, train_plays_transpose=train_plays.transpose(), N=50)
-    if len(recs) != 50:
-        print("UserId:  " + str(i))
-        print(len(recs))
+print("Sample Recommendation")
+rec = model.recommend(user_sparse_index=27,train_plays_transpose=train_plays.transpose(), N=5)
+print(rec)
 
+test_users = list(set(test_plays.tocoo().col))[:1000]
+num_recommendations = 20
+
+print("Begin Testing...")
+start = time.time()
+for iteration,i in enumerate(test_users):
+#    if i%250:
+#        print("Starting iteration:  " + str(i))
+    recs = model.recommend(user_sparse_index=i, train_plays_transpose=train_plays.transpose(), N=num_recommendations)
+    
+    if len(recs) != num_recommendations:
+        print("UserId:  " + str(i) + " did not recieve enough recommendations")
+        print("Number of Recommendations: " + str(len(recs)))
+    
+    if (len(list(set(recs))) != num_recommendations):
+        print("UserId:  " + str(i) + " recieved duplicate recommendations")
+        print("Number of Recommendations: " + str(len(recs)))
+
+print("Testing took: " + str(time.time() - start) + "s")
     

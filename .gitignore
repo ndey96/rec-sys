@@ -6,6 +6,7 @@ data/*
 *lastfm-dataset-360K
 .cache-*
 .idea/
+test.py
 .DS_Store
 web_prototype/python_server/*.h5
 # Byte-compiled / optimized / DLL files
