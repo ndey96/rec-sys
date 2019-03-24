@@ -1,0 +1,22 @@
+{
+    "popular": {
+        "MAP@K": 3.2983527148344793e-06,
+        "mean_cosine_list_dissimilarity": 0.1759157652506763,
+        "metadata_diversity": 2.6621423620004965
+    },
+    "random": {
+        "MAP@K": 0.0,
+        "mean_cosine_list_dissimilarity": 0.16595360688818356,
+        "metadata_diversity": 4.418990729931854
+    },
+    "weighted": {
+        "MAP@K": 0.0,
+        "mean_cosine_list_dissimilarity": 0.1570504251758156,
+        "metadata_diversity": 4.036487232096017
+    },
+    "ALS": {
+        "MAP@K": 1.6014698642328715e-05,
+        "mean_cosine_list_dissimilarity": 0.20099150354325834,
+        "metadata_diversity": 3.7086018391876125
+    }
+}
