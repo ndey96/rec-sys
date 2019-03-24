@@ -10,14 +10,14 @@ test_plays = load_npz('data/test_sparse.npz')
 song_df = pd.read_hdf('data/song_df.h5', key='df')
 user_df = pd.read_hdf('data/user_df.h5', key='df')
 metric_list = ['MAP@K', 'mean_cosine_list_dissimilarity', 'metadata_diversity']
-user_limit = 10#999999
+user_limit = 999999
 results = {}
 
 models = {
     'popular': PopularRecommender,
     'random': RandomRecommender,
-    'weighted': WeightedRecommender,
     'ALS': ALSRecommender,
+    'weighted': WeightedRecommender,
 }
 for model_name, model_class in models.items():
     print(f'\n\nCalculating metrics for {model_name}')
@@ -31,7 +31,8 @@ for model_name, model_class in models.items():
         test_user_items=test_plays.transpose(),
         song_df=song_df,
         limit=user_limit)
-print(results)
 
-with open(f'baseline_metrics_user_limit_{user_limit}.json', 'w') as fp:
-    json.dump(results, fp, indent=4)
+    with open(f'baseline_metrics_user_limit_{user_limit}.json', 'w') as fp:
+        json.dump(results, fp, indent=4)
+
+print(results)
