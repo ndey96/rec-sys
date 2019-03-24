@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from evaluation_hyperopt import get_metrics
+from metrics import get_metrics
 import pandas as pd
 from scipy.sparse import load_npz
 from ALSpkNN import ALSpkNN

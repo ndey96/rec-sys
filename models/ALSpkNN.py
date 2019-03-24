@@ -5,32 +5,13 @@ from scipy.spatial import KDTree
 import numpy as np
 from collections import Counter
 import time
-from random import shuffle
 import itertools
-from itertools import filterfalse
 import sys
 import random
 sys.setrecursionlimit(10000)
 from scipy.sparse import load_npz
 import pandas as pd
-
-
-def get_baseline_cf_model():
-    als_params = {
-        'factors': 16,
-        'dtype': np.float32,
-        'iterations': 2,
-        'calculate_training_loss': True
-    }
-    cf_model = AlternatingLeastSquares(**als_params)
-    return cf_model
-
-
-def weight_cf_matrix(csr_mat, alpha):
-    #don't want to modify original incase it gets put into other models
-    weighted_csr_mat = csr_mat.copy()
-    weighted_csr_mat.data = 1 + np.log(alpha * csr_mat.data)
-    return weighted_csr_mat
+from .ALS import ALSRecommender
 
 
 class ALSpkNN():
@@ -45,7 +26,7 @@ class ALSpkNN():
     def __init__(self,
                  user_df,
                  song_df,
-                 k=100,
+                 k=150,
                  knn_frac=0.5,
                  max_overlap=0.2,
                  cf_weighting_alpha=1,
@@ -64,20 +45,17 @@ class ALSpkNN():
         user_df_subset = user_df.loc[user_df['num_songs'] > (min_songs - 1)]
         self.kdtree = KDTree(user_df_subset['MUSIC'].tolist())
 
-        #build the collaborative filtering model with params hardcoded
         als_params = {
             'factors': 16,
             'dtype': np.float32,
             'iterations': 2,
-            'calculate_training_loss': True
+            'calculate_training_loss': True,
+            'cf_weighting_alpha': 1
         }
-        self.cf_model = AlternatingLeastSquares(**als_params)
+        self.cf_model = ALSRecommender(**als_params)
 
     def fit(self, train_csr):
-        #don't want to modify original incase it gets put into other models
-        weighted_train_csr = weight_cf_matrix(train_csr,
-                                              self.cf_weighting_alpha)
-        self.cf_model.fit(weighted_train_csr)
+        self.cf_model.fit(train_csr)
 
     def calculate_overlap(self, list_1, list_2):
         overlap = len(set(list_1) & set(list_2))

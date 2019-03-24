@@ -1,11 +1,11 @@
 import numpy as np
 import random
-from utilities import build_songs_listened_to_map
+from .utils import build_songs_listened_to_map
 
 
 class RandomRecommender:
 
-    def recommend(self, N, user_sparse_index, train_plays_transpose=None):
+    def recommend(self, user_sparse_index, train_plays_transpose=None, N=20):
         if user_sparse_index in self.user_to_listened_songs_map:
             songs_listened_to = self.user_to_listened_songs_map[
                 user_sparse_index]

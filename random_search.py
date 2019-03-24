@@ -12,7 +12,7 @@ import os
 from sklearn import preprocessing
 import matplotlib.pyplot as plt
 import random
-import evaluation_hyperopt
+from metrics import get_metrics
 
 
 def log_uniform(min_val, max_val):
@@ -51,7 +51,7 @@ if __name__ == '__main__':
             
             print(f'Evaluating ALSpkNN with k={model.k}, knn_frac={model.knn_frac}, max_overlap={model.max_overlap}, min_songs={model.min_songs}')
 
-            metrics = evaluation_hyperopt.get_metrics(
+            metrics = get_metrics(
                 metrics=['MAP@K', 'mean_cosine_list_dissimilarity', 'metadata_diversity'],
                 N=N,
                 model=model,
