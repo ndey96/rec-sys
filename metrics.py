@@ -29,77 +29,6 @@ def recs_initializer(K_init, model_init, train_user_items_init):
 def get_user_recs_wrapper(user_index):
     return get_user_recs(user_index, K, model, train_user_items)
 
-# eg: metrics = ['MAP@K', 'mean_cosine_list_dissimilarity']
-# N = number of recommendations per user
-def get_metrics(
-    metrics,
-    N,
-    model,
-    train_user_items,
-    test_user_items,
-    song_df,
-    limit):
-    
-    user_items_coo = test_user_items.tocoo()
-
-    # user_to_listened_songs_map -> {user_index: listened_song_indices}
-    user_to_listened_songs_map = {}
-    for user_index, song_index in zip(user_items_coo.row, user_items_coo.col):
-        if user_index not in user_to_listened_songs_map:
-            user_to_listened_songs_map[user_index] = set()
-        user_to_listened_songs_map[user_index].add(song_index)
-
-    start = time.time()
-    print('Starting pool.map')
-    with Pool(os.cpu_count(), recs_initializer, (N, model, train_user_items)) as rec_pool:
-        # user_recs -> [recommended_song_indices] -> index of element corresponds to user_index position
-        user_recs = rec_pool.map(
-            func=get_user_recs_wrapper,
-            iterable=list(user_to_listened_songs_map.keys())[:limit],
-            # iterable=user_to_listened_songs_map.keys(),
-            chunksize=625
-        )
-    if isinstance(user_recs[0][0], tuple):
-        new_user_recs = []
-        for user in user_recs:
-            recs_for_user = []
-            for rec in user:
-                recs_for_user.append(rec[0])
-            new_user_recs.append(recs_for_user)
-        user_recs = new_user_recs
-
-    print(f'recs time: {time.time() - start}s')
-
-    calculated_metrics = {}
-    if 'MAP@K' in metrics:
-        start = time.time()
-        map_at_k = get_mean_average_precision_at_k(
-            user_recs=user_recs,
-            user_to_listened_songs_map=user_to_listened_songs_map,
-            K=N,
-            limit=limit)
-        calculated_metrics['MAP@K'] = map_at_k
-        print(f'MAP@K calculation time: {time.time() - start}s')
-
-    if 'mean_cosine_list_dissimilarity' in metrics:
-        start = time.time()
-        cos_dis = get_mean_cosine_list_dissimilarity(user_recs=user_recs,
-                                                K=K,
-                                                limit=limit,
-                                                song_df=song_df)
-        calculated_metrics['mean_cosine_list_dissimilarity'] = cos_dis
-        print(f'mean_cosine_list_dissimilarity calculation time: {time.time() - start}s')
-
-    if 'metadata_diversity' in metrics:
-        start = time.time()
-        metadata_diversity = get_mean_metadata_diversity(user_recs=user_recs,
-                                                    limit=limit,
-                                                    song_df=song_df)
-        calculated_metrics['metadata_diversity'] = metadata_diversity
-        print(f'metadata_diversity calculation time: {time.time() - start}s')
-
-    return calculated_metrics
-
 def get_user_list_dissim(recommended_song_indices, song_df, embedding_cols):
     song_vectors = song_df.loc[recommended_song_indices][embedding_cols].values
     if len(song_vectors) == 1:
@@ -183,6 +112,24 @@ def get_mean_metadata_diversity(user_recs, song_df, limit):
     
     return scaling_factor * np.mean(meta_divs)
 
+def get_user_num_genres_wrapper(recommended_song_indices):
+    return get_user_num_genres(recommended_song_indices, song_df)
+
+def get_user_num_genres(recommended_song_indices, song_df):
+    sub_df = song_df.loc[recommended_song_indices]
+    return sub_df['genre'].nunique()
+
+def get_mean_num_genres(user_recs, song_df, limit):    
+    with Pool(os.cpu_count(), meta_div_initializer, (song_df,)) as num_genres_pool:
+        num_genres = num_genres_pool.map(
+            func=get_user_num_genres_wrapper,
+            iterable=user_recs[:limit],
+            chunksize=625
+        )
+    
+    return np.mean(num_genres)
+
+
 def get_mean_average_precision_at_k(user_recs,
                                     user_to_listened_songs_map,
                                     K,
@@ -202,24 +149,106 @@ def get_mean_average_precision_at_k(user_recs,
     
     return average_precision_sum / len(user_to_listened_songs_map)
 
-# if __name__ == '__main__':
+# eg: metrics = ['MAP@K', 'mean_cosine_list_dissimilarity']
+# N = number of recommendations per user
+def get_metrics(
+    metrics,
+    N,
+    model,
+    train_user_items,
+    test_user_items,
+    song_df,
+    limit):
+    
+    user_items_coo = test_user_items.tocoo()
 
-    ##################################################################
+    # user_to_listened_songs_map -> {user_index: listened_song_indices}
+    user_to_listened_songs_map = {}
+    for user_index, song_index in zip(user_items_coo.row, user_items_coo.col):
+        if user_index not in user_to_listened_songs_map:
+            user_to_listened_songs_map[user_index] = set()
+        user_to_listened_songs_map[user_index].add(song_index)
 
-    # print("Building and fitting the ALSpkNN model")
-    # model = ALSpkNN(user_df, song_df, knn_frac=0.9, mode='popular')
-    # model.fit(train_plays)
-    # print("Evaluating the ALSpkNN model")
-    # metrics = get_metrics(
-    #     metrics=metrics,
-    #     N=20,
-    #     model=model,
-    #     train_user_items=train_plays.transpose(),
-    #     test_user_items=test_plays.transpose(),
-    #     song_df=song_df,
-    #     limit=1000)
-    # print(metrics)
-    # song_sparse_indices = model.recommend(
-    #     user_sparse_index=1234, train_plays_transpose=train_plays.transpose(), N=20)
-    # print(song_sparse_indices)
-    # assert len(song_sparse_indices) == len(np.unique(song_sparse_indices))
+    start = time.time()
+    print('Starting pool.map')
+    with Pool(os.cpu_count(), recs_initializer, (N, model, train_user_items)) as rec_pool:
+        # user_recs -> [recommended_song_indices] -> index of element corresponds to user_index position
+        user_recs = rec_pool.map(
+            func=get_user_recs_wrapper,
+            iterable=list(user_to_listened_songs_map.keys())[:limit],
+            # iterable=user_to_listened_songs_map.keys(),
+            chunksize=625
+        )
+    if isinstance(user_recs[0][0], tuple):
+        new_user_recs = []
+        for user in user_recs:
+            recs_for_user = []
+            for rec in user:
+                recs_for_user.append(rec[0])
+            new_user_recs.append(recs_for_user)
+        user_recs = new_user_recs
+
+    print(f'recs time: {time.time() - start}s')
+
+    calculated_metrics = {}
+    if 'MAP@K' in metrics:
+        start = time.time()
+        map_at_k = get_mean_average_precision_at_k(
+            user_recs=user_recs,
+            user_to_listened_songs_map=user_to_listened_songs_map,
+            K=N,
+            limit=limit)
+        calculated_metrics['MAP@K'] = map_at_k
+        print(f'MAP@K calculation time: {time.time() - start}s')
+
+    if 'mean_cosine_list_dissimilarity' in metrics:
+        start = time.time()
+        cos_dis = get_mean_cosine_list_dissimilarity(user_recs=user_recs,
+                                                K=K,
+                                                limit=limit,
+                                                song_df=song_df)
+        calculated_metrics['mean_cosine_list_dissimilarity'] = cos_dis
+        print(f'mean_cosine_list_dissimilarity calculation time: {time.time() - start}s')
+
+    if 'metadata_diversity' in metrics:
+        start = time.time()
+        metadata_diversity = get_mean_metadata_diversity(user_recs=user_recs,
+                                                    limit=limit,
+                                                    song_df=song_df)
+        calculated_metrics['metadata_diversity'] = metadata_diversity
+        print(f'metadata_diversity calculation time: {time.time() - start}s')
+
+    if 'num_genres' in metrics:
+        start = time.time()
+        num_genres = get_mean_num_genres(user_recs=user_recs,
+                                        limit=limit,
+                                        song_df=song_df)
+        calculated_metrics['num_genres'] = num_genres
+        print(f'num_genres calculation time: {time.time() - start}s')
+
+    return calculated_metrics
+
+if __name__ == '__main__':
+    from models import ALSpkNN, ALSRecommender, PopularRecommender, RandomRecommender, WeightedRecommender
+    train_plays = load_npz('data/train_sparse.npz')
+    test_plays = load_npz('data/test_sparse.npz')
+    song_df = pd.read_hdf('data/song_df.h5', key='df')
+    user_df = pd.read_hdf('data/user_df.h5', key='df')
+    metrics_to_calc = ['MAP@K', 'mean_cosine_list_dissimilarity', 'num_genres']
+    print("Building and fitting the ALSpkNN model")
+    model = ALSpkNN(user_df, song_df, knn_frac=0.9, mode='popular')
+    model.fit(train_plays)
+    print("Evaluating the ALSpkNN model")
+    metrics = get_metrics(
+        metrics=metrics_to_calc,
+        N=20,
+        model=model,
+        train_user_items=train_plays.transpose(),
+        test_user_items=test_plays.transpose(),
+        song_df=song_df,
+        limit=100)
+    print(metrics)
+    song_sparse_indices = model.recommend(
+        user_sparse_index=1234, train_plays_transpose=train_plays.transpose(), N=20)
+    print(song_sparse_indices)
+    assert len(song_sparse_indices) == len(np.unique(song_sparse_indices))
