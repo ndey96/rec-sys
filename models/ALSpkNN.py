@@ -12,13 +12,14 @@ sys.setrecursionlimit(10000)
 from scipy.sparse import load_npz
 import pandas as pd
 from .ALS import ALSRecommender
+from .PopularRecommender import PopularRecommender
 
 
 class ALSpkNN():
     '''
     k = # of neighbours for KNN
     knn_frac = % of KNN recommendations
-    max_overlap = maximum % overlap between user and their MUSIC neighbours
+    max_overlap = maximum % overlap between i and their MUSIC neighbours
     min_songs = only use users with > min_songs in our KNN code
     mode = one of ['popular', 'weighted_random', 'random']
     '''
@@ -53,9 +54,11 @@ class ALSpkNN():
             'cf_weighting_alpha': 1
         }
         self.cf_model = ALSRecommender(**als_params)
+        self.pop_model = PopularRecommender()
 
     def fit(self, train_csr):
-        self.cf_model.fit(train_csr)
+#         self.cf_model.fit(train_csr)
+        self.pop_model.fit(train_csr)
 
     def calculate_overlap(self, list_1, list_2):
         overlap = len(set(list_1) & set(list_2))
@@ -164,8 +167,11 @@ class ALSpkNN():
 
         n_songs = []
         if n > 0:
-            n_song_tuples = self.cf_model.recommend(
-                userid=user_sparse_index, user_items=train_plays_transpose, N=n)
+#             n_song_tuples = self.cf_model.recommend(
+#                 userid=user_sparse_index, user_items=train_plays_transpose, N=n)
+
+            n_song_tuples = self.pop_model.recommend(
+                user_sparse_index, train_plays_transpose, N=n)
             n_songs = [song_tuple[0] for song_tuple in n_song_tuples]
 
         m_songs = []

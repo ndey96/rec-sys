@@ -6,7 +6,7 @@ from multiprocessing import Pool
 import time
 import pandas as pd
 from scipy.sparse import load_npz
-from ALSpkNN import get_baseline_cf_model, weight_cf_matrix, ALSpkNN
+from models.ALSpkNN import ALSpkNN
 from functools import partial
 import os
 from sklearn import preprocessing
