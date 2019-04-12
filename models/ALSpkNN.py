@@ -169,10 +169,12 @@ class ALSpkNN():
         if n > 0:
 #             n_song_tuples = self.cf_model.recommend(
 #                 userid=user_sparse_index, user_items=train_plays_transpose, N=n)
+#            n_songs = [song_tuple[0] for song_tuple in n_song_tuples]
+
 
             n_song_tuples = self.pop_model.recommend(
                 user_sparse_index, train_plays_transpose, N=n)
-            n_songs = [song_tuple[0] for song_tuple in n_song_tuples]
+            n_songs = n_song_tuples
 
         m_songs = []
         if m > 0:
