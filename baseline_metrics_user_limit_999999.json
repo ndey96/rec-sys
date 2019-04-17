@@ -2,16 +2,19 @@
     "popular": {
         "MAP@K": 0.10620597746944373,
         "mean_cosine_list_dissimilarity": 0.1782422452673025,
-        "metadata_diversity": 2.708892926008163
+        "metadata_diversity": 2.708892926008163,
+        "num_genres": 1.9996506626492871
     },
     "random": {
-        "MAP@K": 0.0001349077479153938,
-        "mean_cosine_list_dissimilarity": 0.17520191979126418,
-        "metadata_diversity": 4.511948377743507
+        "MAP@K": 0.00014085878245324182,
+        "mean_cosine_list_dissimilarity": 0.175149323033343,
+        "metadata_diversity": 4.511708824036257,
+        "num_genres": 4.17823846640903
     },
     "ALS": {
-        "MAP@K": 0.0855785767079789,
-        "mean_cosine_list_dissimilarity": 0.16196735253426256,
-        "metadata_diversity": 3.223943220517218
+        "MAP@K": 0.09025900060858252,
+        "mean_cosine_list_dissimilarity": 0.1625365695661462,
+        "metadata_diversity": 3.401326817287946,
+        "num_genres": 3.0329796292657365
     }
 }

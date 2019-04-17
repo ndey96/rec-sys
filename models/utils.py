@@ -14,5 +14,6 @@ def build_songs_listened_to_map(item_user_coo):
 def weight_cf_matrix(csr_mat, alpha):
     #don't want to modify original incase it gets put into other models
     weighted_csr_mat = csr_mat.copy()
+    # calculates the term frequency of each song
     weighted_csr_mat.data = 1 + np.log(alpha * csr_mat.data)
     return weighted_csr_mat

@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from metrics import get_metrics
 import pandas as pd
 from scipy.sparse import load_npz
-from ALSpkNN import ALSpkNN
+from models import ALSpkNN
 import numpy as np
 import json
 import time
@@ -26,20 +26,20 @@ if __name__ == '__main__':
 
     #order of placement in dictionary matters
     hparam_vals_map = {
-        'mode': ['popular', 'weighted_random', 'random'],
-        'knn_frac': [0.25, 0.5, 0.75, 1],
-        'k': [50, 100, 250, 500],
+        # 'mode': ['popular', 'weighted_random', 'random'],
+        # 'k': [20, 30, 50, 75, 100, 250, 500, 750, 1000],
+        'knn_frac': [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
         # 'max_overlap': [0.05, 0.1, 0.15, 0.2],
         # 'min_songs': [1, 5, 10, 15],
     }
 
     default_vals = {
-        'k': 150,
+        'k': 30,
         'max_overlap': 0.1,
-        'knn_frac': 0.5,
+        'knn_frac': 1,
         'min_songs': 5,
         'cf_weighting_alpha': 1,
-        'mode': 'popular'
+        'mode': 'weighted_random'
     }
 
     metrics_to_get = [
@@ -47,9 +47,9 @@ if __name__ == '__main__':
     ]
     # metrics_to_get = ['MAP@K']
 
-    USER_LIMIT = 9999999
+    USER_LIMIT = 99999992
     # USER_LIMIT = 10000
-    figure_dir = 'figures_91k_N_20'
+    figure_dir = 'figures_91k_N_20-apr-17'
     for hparam_name, hparam_vals in hparam_vals_map.items():
         print(f'\n\n\n\nStarting {hparam_name} line search...')
         results = np.zeros((len(metrics_to_get), len(hparam_vals)))
@@ -72,7 +72,7 @@ if __name__ == '__main__':
                 limit=USER_LIMIT)
             print(metrics)
             results[:, i] = list(metrics.values())
-            print(f'Evaluating model took {time.time()-start}s')
+            print(f'Evaluating model {i+1}/{len(hparam_vals)} took {time.time()-start}s')
 
         np.save(f'{figure_dir}/results_{hparam_name}', results)
         for i in range(len(metrics_to_get)):

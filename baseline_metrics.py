@@ -9,7 +9,7 @@ train_plays = load_npz('data/train_sparse.npz')
 test_plays = load_npz('data/test_sparse.npz')
 song_df = pd.read_hdf('data/song_df.h5', key='df')
 user_df = pd.read_hdf('data/user_df.h5', key='df')
-metric_list = ['MAP@K', 'mean_cosine_list_dissimilarity', 'metadata_diversity']
+metric_list = ['MAP@K', 'mean_cosine_list_dissimilarity', 'num_genres', 'metadata_diversity']
 user_limit = 999999
 results = {}
 
@@ -17,7 +17,7 @@ models = {
     'popular': PopularRecommender,
     'random': RandomRecommender,
     'ALS': ALSRecommender,
-    'weighted': WeightedRecommender,
+    # 'weighted': WeightedRecommender,
 }
 for model_name, model_class in models.items():
     print(f'\n\nCalculating metrics for {model_name}')

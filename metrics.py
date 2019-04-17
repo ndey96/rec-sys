@@ -158,7 +158,7 @@ def get_metrics(
     train_user_items,
     test_user_items,
     song_df,
-    limit):
+    limit=9999999):
     
     user_items_coo = test_user_items.tocoo()
 
@@ -236,7 +236,7 @@ if __name__ == '__main__':
     user_df = pd.read_hdf('data/user_df.h5', key='df')
     metrics_to_calc = ['MAP@K', 'mean_cosine_list_dissimilarity', 'num_genres']
     print("Building and fitting the ALSpkNN model")
-    model = ALSpkNN(user_df, song_df, knn_frac=0.9, mode='popular')
+    model = ALSpkNN(user_df, song_df, k=30, knn_frac=0.75, mode='weighted_random')
     model.fit(train_plays)
     print("Evaluating the ALSpkNN model")
     metrics = get_metrics(
@@ -246,9 +246,9 @@ if __name__ == '__main__':
         train_user_items=train_plays.transpose(),
         test_user_items=test_plays.transpose(),
         song_df=song_df,
-        limit=100)
+        limit=99999999)
     print(metrics)
-    song_sparse_indices = model.recommend(
-        user_sparse_index=1234, train_plays_transpose=train_plays.transpose(), N=20)
-    print(song_sparse_indices)
-    assert len(song_sparse_indices) == len(np.unique(song_sparse_indices))
+    # song_sparse_indices = model.recommend(
+    #     user_sparse_index=1234, train_plays_transpose=train_plays.transpose(), N=20)
+    # print(song_sparse_indices)
+    # assert len(song_sparse_indices) == len(np.unique(song_sparse_indices))
