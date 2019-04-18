@@ -16,5 +16,11 @@
         "mean_cosine_list_dissimilarity": 0.1625365695661462,
         "metadata_diversity": 3.401326817287946,
         "num_genres": 3.0329796292657365
+    },
+    "weighted": {
+        "MAP@K": 0.0059247763602836324,
+        "mean_cosine_list_dissimilarity": 0.15991899935008733,
+        "metadata_diversity": 4.121585381415222,
+        "num_genres": 3.7169166612082707
     }
 }

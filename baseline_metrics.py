@@ -14,10 +14,10 @@ user_limit = 999999
 results = {}
 
 models = {
-    'popular': PopularRecommender,
-    'random': RandomRecommender,
-    'ALS': ALSRecommender,
-    # 'weighted': WeightedRecommender,
+    # 'popular': PopularRecommender,
+    # 'random': RandomRecommender,
+    # 'ALS': ALSRecommender,
+    'weighted': WeightedRecommender,
 }
 for model_name, model_class in models.items():
     print(f'\n\nCalculating metrics for {model_name}')
@@ -32,7 +32,7 @@ for model_name, model_class in models.items():
         song_df=song_df,
         limit=user_limit)
 
-    with open(f'baseline_metrics_user_limit_{user_limit}.json', 'w') as fp:
+    with open(f'baseline_metrics_user_limit_{user_limit}.json', 'a') as fp:
         json.dump(results, fp, indent=4)
 
 print(results)

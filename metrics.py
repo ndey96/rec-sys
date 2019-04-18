@@ -236,7 +236,7 @@ if __name__ == '__main__':
     user_df = pd.read_hdf('data/user_df.h5', key='df')
     metrics_to_calc = ['MAP@K', 'mean_cosine_list_dissimilarity', 'num_genres']
     print("Building and fitting the ALSpkNN model")
-    model = ALSpkNN(user_df, song_df, k=30, knn_frac=0.75, mode='weighted_random')
+    model = ALSpkNN(user_df, song_df, k=30, knn_frac=1, mode='weighted_random')
     model.fit(train_plays)
     print("Evaluating the ALSpkNN model")
     metrics = get_metrics(
