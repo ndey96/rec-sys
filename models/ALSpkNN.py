@@ -22,6 +22,7 @@ class ALSpkNN():
     max_overlap = maximum % overlap between i and their MUSIC neighbours
     min_songs = only use users with > min_songs in our KNN code
     mode = one of ['popular', 'weighted_random', 'random']
+    bottom_branch = one of ['ALS', 'Popular']
     '''
 
     def __init__(self,
@@ -32,7 +33,8 @@ class ALSpkNN():
                  max_overlap=0.2,
                  cf_weighting_alpha=1,
                  min_songs=5,
-                 mode='weighted_random'):
+                 mode='weighted_random',
+                 bottom_branch='ALS'):
 
         self.user_df = user_df
         self.song_df = song_df
@@ -42,6 +44,7 @@ class ALSpkNN():
         self.max_overlap = max_overlap
         self.min_songs = min_songs
         self.mode = mode
+        self.bottom_branch = bottom_branch
 
         user_df_subset = user_df.loc[user_df['num_songs'] > (min_songs - 1)]
         self.kdtree = KDTree(user_df_subset['MUSIC'].tolist())
@@ -53,12 +56,17 @@ class ALSpkNN():
             'calculate_training_loss': True,
             'cf_weighting_alpha': 1
         }
-        self.cf_model = ALSRecommender(**als_params)
-        self.pop_model = PopularRecommender()
+        if self.bottom_branch == 'ALS':
+            self.cf_model = ALSRecommender(**als_params)
+        if self.bottom_branch == 'Popular':
+            self.pop_model = PopularRecommender()
 
     def fit(self, train_csr):
-        #         self.cf_model.fit(train_csr)
-        self.pop_model.fit(train_csr)
+        if self.bottom_branch == 'ALS':
+            self.cf_model.fit(train_csr)
+
+        if self.bottom_branch == 'Popular':
+            self.pop_model.fit(train_csr)
 
     def calculate_overlap(self, list_1, list_2):
         overlap = len(set(list_1) & set(list_2))
@@ -167,13 +175,17 @@ class ALSpkNN():
 
         n_songs = []
         if n > 0:
-            #             n_song_tuples = self.cf_model.recommend(
-            #                 userid=user_sparse_index, user_items=train_plays_transpose, N=n)
-            #            n_songs = [song_tuple[0] for song_tuple in n_song_tuples]
+            if self.bottom_branch == 'ALS':
+                n_song_tuples = self.cf_model.recommend(
+                    userid=user_sparse_index,
+                    user_items=train_plays_transpose,
+                    N=n)
+                n_songs = [song_tuple[0] for song_tuple in n_song_tuples]
 
-            n_song_tuples = self.pop_model.recommend(
-                user_sparse_index, train_plays_transpose, N=n)
-            n_songs = n_song_tuples
+            if self.bottom_branch == 'Popular':
+                n_song_tuples = self.pop_model.recommend(
+                    user_sparse_index, train_plays_transpose, N=n)
+                n_songs = n_song_tuples
 
         m_songs = []
         if m > 0:

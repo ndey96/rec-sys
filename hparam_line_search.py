@@ -29,7 +29,7 @@ if __name__ == '__main__':
         'mode': ['popular', 'weighted_random', 'random'],
         'k': [20, 30, 50, 75, 100, 250, 500, 750, 1000],
         'knn_frac': [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
-        'max_overlap': [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4],
+        # 'max_overlap': [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4],
         # 'min_songs': [1, 5, 10, 15],
     }
 
@@ -39,7 +39,8 @@ if __name__ == '__main__':
         'knn_frac': 1,
         'min_songs': 5,
         'cf_weighting_alpha': 1,
-        'mode': 'weighted_random'
+        'mode': 'weighted_random',
+        'bottom_branch': 'ALS',
     }
 
     metrics_to_get = [
@@ -49,7 +50,7 @@ if __name__ == '__main__':
 
     USER_LIMIT = 99999992
     # USER_LIMIT = 10000
-    figure_dir = 'figures_91k_N_20-apr-18'
+    figure_dir = 'figures_91k_N_20-apr-20'
     for hparam_name, hparam_vals in hparam_vals_map.items():
         print(f'\n\n\n\nStarting {hparam_name} line search...')
         results = np.zeros((len(metrics_to_get), len(hparam_vals)))
