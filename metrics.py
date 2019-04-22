@@ -234,9 +234,18 @@ if __name__ == '__main__':
     test_plays = load_npz('data/test_sparse.npz')
     song_df = pd.read_hdf('data/song_df.h5', key='df')
     user_df = pd.read_hdf('data/user_df.h5', key='df')
-    metrics_to_calc = ['MAP@K', 'mean_cosine_list_dissimilarity', 'num_genres']
-    print("Building and fitting the ALSpkNN model")
-    model = ALSpkNN(user_df, song_df, k=30, knn_frac=1, mode='weighted_random')
+    metrics_to_calc = ['MAP@K','num_genres']
+    hparam_vals = {
+        'k': 30,
+        'max_overlap': 0.2,
+        'knn_frac': 0.5,
+        'min_songs': 5,
+        'cf_weighting_alpha': 1,
+        'mode': 'weighted_random',
+        'bottom_branch': 'ALS',
+    }
+    print(f"Building and fitting the ALSpkNN model with {hparam_vals}")
+    model = ALSpkNN(user_df, song_df, **hparam_vals)
     model.fit(train_plays)
     print("Evaluating the ALSpkNN model")
     metrics = get_metrics(
